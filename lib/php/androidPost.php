@@ -1,0 +1,4775 @@
+<?php
+
+//Evita que muestre advertencias cuando el Post esta vacio
+//error_reporting(E_ALL ^ E_NOTICE);
+
+try {
+	require_once 'conn/AndroidConn.php';  //Crea la conexion con la bbdd
+	require_once 'conn/sis.php';  //contiene funcion jsonConn que permite interactuar con el API REST del servidor
+ 
+	if ((strpos($_SERVER['SERVER_NAME'], 'localhost') !== false) ||  //si estamos en localhost
+	    (strpos($_SERVER['SERVER_NAME'], '127.0.0.1') !== false) ||	//o estamos en 127.0.0.1
+	    (
+		(strpos($_SERVER['SERVER_NAME'], '192.168.69.') !== false) && //o estamos en servidor local
+		(strpos($_SERVER['SERVER_NAME'], '192.168.69.10') === false) //pero no es el 10.
+	    )
+	   ) {
+	    //estamos en servidor de desarrolladores
+	    require_once '../pgplanning-portalempleado/_lib/registerSigning.inc.php';
+	    require_once '../pgplanning-portalempleado/_lib/signings.inc.php';
+	    $langDirPGEMP = "../pgplanning-portalempleado/langs";
+	} elseif (strpos($_SERVER['SERVER_NAME'], '192.168.69.10') !== false) {
+	    //estamos en servidor de pruebas local 192.168.69.10
+	    require_once '../portalempleado.pgplanning.es/_lib/registerSigning.inc.php';
+	    require_once '../portalempleado.pgplanning.es/_lib/signings.inc.php';
+	    $langDirPGEMP = "../portalempleado.pgplanning.es/langs";
+	} else {
+	    //estamos en servidor de produccion
+	    require_once '../portalempleado.pgplanning.es/_lib/registerSigning.inc.php';
+	    require_once '../portalempleado.pgplanning.es/_lib/signings.inc.php';
+	    $langDirPGEMP = "../portalempleado.pgplanning.es/langs";
+	}
+	//******************
+	//**Variables Post**
+	//******************
+	//Variables login
+	/*
+	$id_usuario = $_POST["id_usuario"];
+	$device_id = $_POST["device_id"];
+	$device_name = $_POST["device_name"];
+	$token = $_POST["token"];
+	$token_timestamp = date('Y-m-d H:i:s');
+	$estado = $_POST["estado"];
+	$email_usuario = $_POST["email"];
+	
+	//Variables consultas
+	$nQuery = $_POST["nQuery"];
+	$whereClause = $_POST["whereClause"];
+	
+	$_POST['status'];
+	$_POST['envioExpe'];
+	$_POST['envioPref'];
+	$_POST['envioInscrito'];
+	$_POST['envioExpe'];
+	$_POST['id_candidato'];
+	*/
+	$function = $_GET['function'];
+	
+	switch ($function) {
+		
+		case "checkLogin":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["emailUser"] = "jmanso@globales.es";
+			$_POST["passUser"] = md5("PGP" . "password");
+			$_POST["idDevice"] = "1234";
+			$_POST["firstRegistration"] = "true";
+			$_POST["device_name"] = "Prueba Dev Name";
+			*/
+			
+			echo checkLogin();
+			break;
+		case "changeAdminPassword": 
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["emailUser"] = "jmanso@globales.es";
+			$_POST["oldPassword"] = '300e75570b34db9688741b32d5a77c99';
+			$_POST["plainNewPassword"] = "newPassword";
+			$_POST["plainNewPassword2"] = "newPassword";
+			*/
+			
+			echo changeAdminPassword();
+			break;
+		case "checkLoginToLogout": 
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* // Parametros de prueba
+			$_POST['token'] = "bad60d755c5500c1f1e4880135295501";
+			$_POST['emailUser'] = 'jmanso@globales.es';
+			$_POST['passUser'] = md5("PGP" . "password");
+			*/
+		    
+			echo checkLoginToLogout();
+			
+			break;
+		case "checkExpiredCredentials":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* // Parametros de prueba
+			$_POST['emailUser'] = 'jmanso@globales.es';
+			*/
+			echo checkExpiredCredentials(false);
+			
+			break;
+		case "configureFixedStation":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //Parametros de prueba
+			$_POST["idDevice"] = "1234";
+			$_POST["token"] = "bad60d755c5500c1f1e4880135295501";
+			$_POST["idEmpresa"] = 104;
+			$_POST["idArea"] = 211;
+			$_POST["idFile"] = 342 ;
+			$_POST["modoOP"] = "IN_OUT";
+			$_POST["fechaFinFich"] = "2017-12-31";
+			$_POST["validez_desde"] = "2017-01-01";
+			$_POST["validez_hasta"] = "2017-12-31";
+			*/
+		    
+			echo configurarPuestoFijo();
+			break;
+			
+		case "logout":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "bad60d755c5500c1f1e4880135295501";
+			*/	
+		    
+			echo logout();
+			break;
+			
+		case "obtenerUsuarioPFijo":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["token"] = "bad60d755c5500c1f1e4880135295501";
+			*/	
+			echo recuperarUsuarioWebUser();
+			break;
+			
+		case "obtenerConfigFixedStation":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "bad60d755c5500c1f1e4880135295501";
+			*/
+			echo recuperarConfiguracionPuestoFijo();
+			break;	
+			
+		case "consultar":
+			header('content-type: application/json; charset=utf-8');
+			
+			//obtenemos json con la peticion
+			$json = file_get_contents('php://input');
+			//lo decodificamos
+			$jsonPostParams = json_decode($json, true);
+			
+			/**
+			 * Inicio Parametros de prueba
+			 */
+			    //$jsonPostParams["token"] = "bad60d755c5500c1f1e4880135295501";
+			    //$jsonPostParams["tokenOrigin"] = "PGTIME";
+			    
+			    //$jsonPostParams["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			    //$jsonPostParams["tokenOrigin"] = "PGEMP";
+			    
+			    
+			    //Una:
+			    //$jsonPostParams['nQuery'] = "QUERY_EMPLEADOS";
+			    //$jsonPostParams['nQuery'] = "QUERY_INCIDENCIAS";
+			    //$jsonPostParams['nQuery'] = "QUERY_INCIDENCIAS_TRABAJO";
+			    //$jsonPostParams['nQuery'] = "QUERY_INCIDENCIAS_ALL";
+			    //$jsonPostParams['nQuery'] = "QUERY_SHIFTTYPES";
+			    //$jsonPostParams['nQuery'] = "QUERY_LOCATION";
+			    //$jsonPostParams['nQuery'] = "QUERY_SKILLS";
+			    //$jsonPostParams['nQuery'] = "QUERY_TIPOS_TT";
+			    //
+			    //$jsonPostParams['nQuery'] = "QUERY_TIMETABLE"; //Esta consulta requiere mas parametros
+			    //$jsonPostParams["employeeInClause"] = array(6,7,8); // (opcional)
+			    //$jsonPostParams["dateStart"] = "2017-09-01"; // (opcional)
+			    //$jsonPostParams["dateEnd"] = "2017-09-10"; // (opcional)
+			    //
+			    //$jsonPostParams['nQuery'] = "QUERY_FESTIVOS"; //Esta consulta requiere mas parametros
+			    //$jsonPostParams["employeeInClause"] = array(6,7,8); // (opcional)
+			/**
+			 * Fin Parametros de prueba
+			 */
+			
+			if (!isset($jsonPostParams)) {
+			    $jsontext = '{';
+			    $jsontext .= '"resultado": "error",';
+			    $jsontext .= '"result_str": "NO_PARAMETERS"';
+			    $jsontext .= "}";
+			    echo $jsontext;
+			} else {
+			    echo getJsonArraySQL($jsonPostParams);
+			}
+			break;
+			
+		case "checkClock":
+			header('content-type: application/json; charset=utf-8');
+			
+			echo getServerTime();
+			break;
+			
+		case "linkNFCtag":
+			header('content-type: application/json; charset=utf-8');
+			/* 
+			// Parametros de prueba
+			$_POST["token"] = '895807cef61c44b053a2ef6fb851a544';    
+			$_POST["emp_code"] = '5096';  
+			$_POST["tag_nfc"] = '00-11-22-33-44-55-66';
+			 */
+			echo vincular_tag_nfc_to_empleado();
+			break;
+		case "pfijo_acceso_userNFC":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "895807cef61c44b053a2ef6fb851a544";
+			$_POST["tag_nfc"] = "00-00-00-11-11-11";
+			$_POST["fecha_hora"] = "SERVER_TIME";
+			$_POST["incidencia"] = "";
+			$_POST["tipoAcceso"] = "IN_OUT";
+			$_POST["latitud"] = "40.9558823"; //(opcional)
+			$_POST["longitud"] = "-4.1206448"; //(opcional)
+			$_POST["accuracy"] = 1250; //--> margen de error devuelto junto con las coordenadas en metroes //(opcional)
+			$_POST["photo"] = 'data:image/jpeg;base64,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'; //opcional
+			*/
+			echo validar_acceso_usuario_pfijoNFC();
+			break;
+		case "pfijo_acceso_userNFC_HCE":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "de981807362eac6d457d027bcdb0b022";
+			$_POST["tag_HCE_nfc"] = "CompID:45;AreaID:45;FileID:133;EmplID:4;CRC:402f7f92aefbe42625191daa3678be02;";
+			$_POST["fecha_hora"] = "SERVER_TIME";
+			$_POST["incidencia"] = "";
+			$_POST["tipoAcceso"] = "IN_OUT";
+			$_POST["latitud"] = "40.9558823"; //(opcional)
+			$_POST["longitud"] = "-4.1206448"; //(opcional)
+			$_POST["accuracy"] = 1250; //--> margen de error devuelto junto con las coordenadas en metroes //(opcional)
+			$_POST["photo"] = 'data:image/jpeg;base64,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'; //opcional
+			*/
+			echo validar_acceso_usuario_pfijoNFC_HCE();
+			break;
+		case "pfijo_acceso_user":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "bad60d755c5500c1f1e4880135295501";
+			$_POST["password"] = "3333";
+			$_POST["fecha_hora"] = "SERVER_TIME";
+			$_POST["incidencia"] = "";
+			$_POST["tipoAcceso"] = "IN_OUT";
+			$_POST["latitud"] = "40.9558823"; //(opcional)
+			$_POST["longitud"] = "-4.1206448"; //(opcional)
+			$_POST["accuracy"] = 1250; //--> margen de error devuelto junto con las coordenadas en metroes //(opcional)
+			$_POST["photo"] = 'data:image/jpeg;base64,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'; //opcional
+			*/
+		    
+			echo validar_acceso_usuario_pfijo();
+			break;
+		
+		    //funciones del portal del empleado
+		    
+		case "checkLoginEmp":
+		    header('content-type: application/json; charset=utf-8');
+
+		    /* //parametros de prueba
+		    $_POST["emailEmp"] = "jmanso@globales.es";
+		    //$_POST["passEmp"] = md5("PGP" . "Password");
+		    $_POST["passEmp"] = "300e75570b34db9688741b32d5a77c99";
+		    $_POST["device_name"] = "Prueba Dev Name";
+		    */
+		    
+		    echo checkLoginEmp();
+		    break;
+		case "checkAlreadyLoggedEmp": 
+		    header('content-type: application/json; charset=utf-8');
+
+		    /* //parametros de prueba
+		    $_POST["emailEmp"] = "jmanso@globales.es";
+		    //$_POST["passEmp"] = md5("PGP" . "Password");
+		    $_POST["passEmp"] = "300e75570b34db9688741b32d5a77c99";
+		    $_POST["token"] = "8f9d6649e35bea5227ea9215d7c23dd5";
+		    */
+		    
+		    echo checkPassAlreadyLoggedEmp();
+		    break;
+		case "changeEmpPassword": 
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["emailUser"] = "jmanso@globales.es";
+			$_POST["oldPassword"] = '300e75570b34db9688741b32d5a77c99';
+			$_POST["plainNewPassword"] = "newPassword";
+			$_POST["plainNewPassword2"] = "newPassword";
+			*/
+		    
+			echo changeEmpPassword();
+			break;
+		case "checkExpiredCredentialsEmp":
+		    header('content-type: application/json; charset=utf-8');
+		    
+		    /* //parametros de prueba
+		    $_POST["emailEmp"] = "jmanso@globales.es";
+		    */
+		    
+		    echo checkExpiredCredentialsEmp(false);
+		    break;
+		case "configureEmployee":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //Parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			$_POST["idEmpresa"] = 104;
+			$_POST["idArea"] = 211;
+			$_POST["idFile"] = 342 ;
+			$_POST["idEmpleadoPlan"] = 8 ;
+			*/
+		    
+			echo configurarEmpleado();
+			break;
+		case "obtenerConfigEmployee":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			*/
+			echo recuperarConfiguracionEmpleado();
+			break;	
+			
+		case "obtenerDatosEmpleado":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			*/	
+			echo recuperarDatosEmpleado();
+			break;
+		case "logoutEmployee":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			*/	
+			echo logoutEmployee();
+			break;
+		case "urlPortalLogeado" :
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			*/
+			echo obtenerURLPortalEmpleadoLogeado();
+			break;
+		case "seccionesPortalEmpleado" : 
+			header('content-type: application/json; charset=utf-8');
+		    
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			*/
+			echo obtenerSeccionesPortalEmpleado();
+			break;
+		    
+		case "pemp_acceso_user_nextTypeSign":
+			header('content-type: application/json; charset=utf-8');
+			
+			/* //parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			$_POST["incidencia"] = 0;
+			//$_POST["lang"] = "en_US"; 
+			$_POST["lang"] = "es_ES";
+			*/
+		    
+			echo validar_acceso_usuario_pemp(false);//NO grabando fichaje
+			break;
+		case "pemp_acceso_user":
+			header('content-type: application/json; charset=utf-8');
+		    
+			/*
+			//parametros de prueba
+			$_POST["token"] = "1fbfc6c70128635d57950d4aaeab7cd3";
+			$_POST["incidencia"] = 0;
+			//$_POST["lang"] = "en_US"; 
+			$_POST["lang"] = "es_ES";
+			$_POST["latitud"] = "41.122052"; //(opcional)
+			$_POST["longitud"] = "-4.266332"; //(opcional)
+			$_POST["accuracy"] = 1250; //--> margen de error devuelto junto con las coordenadas en metroes //(opcional)
+			$_POST["responseUser"] = 2; //Código de respuesta en caso de tener que haber realizado la pregunta.
+			*/
+		    
+			echo validar_acceso_usuario_pemp(true); //grabando fichaje
+			break;
+		    
+	}
+} catch (PDOException $ex) {
+	header('content-type: application/json; charset=utf-8');
+	$jsontext = '{';
+	$jsontext .= '"resultado": ';
+	$jsontext .= '"exception",';
+	$jsontext .= '"result_str": "Excepción al conectar con la bbdd: ' . ' Exception: ' . $ex->getMessage() . '"';
+	$jsontext .= "}";
+	echo $jsontext;
+}
+//*********************************************************************************************
+//** FUNCION QUE TRANSFORMA EL CONTENIDO DE UN ARRAY A TEXTO CON ECODING UTF-8
+//*********************************************************************************************
+/*
+  function utf8ize($d) {
+  if (is_array($d)) {
+  foreach ($d as $k => $v) {
+  $d[$k] = utf8ize($v);
+  }
+  } else if (is_string($d)) {
+  return utf8_encode($d);
+  }
+  return $d;
+  }
+ */
+
+ 
+ 
+/* Requiere Tabla SQL:
+CREATE TABLE `pgtime_puestos_fijos` (
+  `token` VARCHAR(200) NOT NULL COMMENT '',
+  `token_time` DATETIME NOT NULL COMMENT '',
+  `idUsuario` INT NOT NULL COMMENT '',
+  `idDevice` VARCHAR(200) NOT NULL COMMENT '',
+  `device_name` VARCHAR(200) NOT NULL COMMENT '',
+  `idEmpresa` INT NULL DEFAULT NULL COMMENT '',
+  `idArea` INT NULL DEFAULT NULL COMMENT '',
+  `idFile` INT NULL DEFAULT NULL COMMENT '',
+  `modoOP` VARCHAR(6) NOT NULL DEFAULT 'IN_OUT' COMMENT '',
+  `botonESSeparado` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '',
+  `modoKiosko` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '',
+  `screenSaverTime` INT NOT NULL DEFAULT 15000 COMMENT '',
+  `fechaFinFichajes` DATETIME NULL DEFAULT NULL COMMENT '',
+  `validez_desde` DATETIME NULL DEFAULT NULL COMMENT '',
+  `validez_hasta` DATETIME NULL DEFAULT NULL COMMENT '',
+  `last_login` DATETIME NULL DEFAULT NULL COMMENT '',
+  PRIMARY KEY (`token`)  COMMENT '',
+  UNIQUE INDEX `idDevice_UNIQUE` (`idDevice` ASC)  COMMENT '',
+  INDEX `pgtime_puesto_fijo_usuario_idx` (`idUsuario` ASC)  COMMENT '',
+  INDEX `pgtime_pfijo_empresa_idx` (`idEmpresa` ASC)  COMMENT '',
+  INDEX `pgtime_pfijo_area_idx` (`idArea` ASC)  COMMENT '',
+  INDEX `pgtime_pfijo_file_idx` (`idFile` ASC)  COMMENT '',
+  CONSTRAINT `pgtime_pfijo_usuario`
+    FOREIGN KEY (`idUsuario`)
+    REFERENCES `web_users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pgtime_pfijo_empresa`
+    FOREIGN KEY (`idEmpresa`)
+    REFERENCES `web_company` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pgtime_pfijo_area`
+    FOREIGN KEY (`idArea`)
+    REFERENCES `web_area` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pgtime_pfijo_file`
+    FOREIGN KEY (`idFile`)
+    REFERENCES `web_arx` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE);
+
+CREATE TABLE fiw_logins_app (
+  token varchar(200) NOT NULL,
+  token_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  idEmpleado int(11) NOT NULL,
+  device_name varchar(200) NOT NULL,
+  idEmpresa int(11) DEFAULT NULL,
+  idArea int(11) DEFAULT NULL,
+  idFile int(11) DEFAULT NULL,
+  idEmpleadoPlan int(11) DEFAULT NULL,
+  last_login datetime DEFAULT NULL,
+  PRIMARY KEY (token),
+  KEY fiw_loginApp_empleado_idx (idEmpleado),
+  KEY fiw_loginApp_empresa_idx (idEmpresa),
+  KEY fiw_loginApp_area_idx (idArea),
+  KEY fiw_loginApp_file_idx (idFile),
+  CONSTRAINT fiw_loginApp_area 
+    FOREIGN KEY (idArea) 
+    REFERENCES web_area (id) 
+    ON DELETE CASCADE 
+    ON UPDATE CASCADE,
+  CONSTRAINT fiw_loginApp_empresa 
+    FOREIGN KEY (idEmpresa) 
+    REFERENCES web_company (id) 
+    ON DELETE CASCADE 
+    ON UPDATE CASCADE,
+  CONSTRAINT fiw_loginApp_file 
+    FOREIGN KEY (idFile) 
+    REFERENCES web_arx (id) 
+    ON DELETE CASCADE 
+    ON UPDATE CASCADE,
+  CONSTRAINT fiw_loginApp_empleado 
+    FOREIGN KEY (idEmpleado) 
+    REFERENCES fiw_employees (id) 
+    ON DELETE CASCADE 
+    ON UPDATE CASCADE,
+  CONSTRAINT `fiw_loginApp_empleadoPlan`
+    FOREIGN KEY (`idFile` , `idEmpleadoPlan`)
+    REFERENCES `pgplanning`.`pg_employees` (`file` , `id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+*/ 
+
+
+/*********************************************************************************************
+** Función que comprueba las credenciales del usuario y realiza el logeo devolviendo un json con el resultado.
+** PARAMETROS:
+** $_POST['emailUser']   		--> id de usuario
+** $_POST['passUser']    		--> pass del usuario ya codificada (md5) Formato: md5("PGP" + password)
+** $_POST['idDevice']    		--> id dispositivo
+** $_POST['firstRegistration']		--> indica si es el primer registro del deviceID
+** $_POST['device_name']		--> nombre del dispositivo
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+** 	USER_OR_PASS_NOT_VALID		--> Usuario o contraseña no validos.
+** 	ERROR_REGISTERING_USER		--> Error al registrar el usuario y dispositivo como puesto fijo
+** 	ERROR_CHECK_ALREADY_LOGGED	--> Error al comprobar si el usuario y dispositivo de puesto fijo estaba ya logeado
+**    ERROR_DUPLICATED_DEVICE_ID	--> Error, es el primer registro y el DeviceID ya existe en la bbdd.
+**    USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND --> Error al recuperar informacion del usuario en base a su token recien generado
+**	EXPIRED_PASSWORD		--> Si el usuario tiene la contraseña caducada y debe cambiarla 
+**	EXPIRED_PASSWORD_FIRST_USE	--> Password expirada, es el primer login del usuario, debe cambiar la contraseña.
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function checkLogin() {
+	global $conexion;
+	/* Ejemplo de estructura:
+	{"user": {
+		"id": 1,
+		"lang": 2,
+		"user": "user",
+		"name": "name",
+		"description": "desc",
+		"loginToken": "asdad",
+		"email": "email",
+		"company": [
+			{
+				"id": 1, 
+				"name": "c1",
+				"area": [
+					{
+						"id": 1,
+						"name": "aName",
+						"file: [
+							{
+								"id": 1,
+								"name": "name",
+								"firstShift": "fsd",
+								"lastShiftDate": "lsd" // Ojo: el dia es inclusive, aunque la fecha sea 31/12/2017 00:00:00, el 31 se incluye completo
+							},
+							{
+								"id": 3,
+								"name": "name",
+								"firstShift": "fsd",
+								"lastShiftDate": "lsd"
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": 2, 
+				"name": "c2"
+				"area": [
+					{
+						"id": 2,
+						"name": "aName",
+						"file: [
+							{
+								"id": 2,
+								"name": "name",
+								"firstShift": "fsd",
+								"lastShiftDate": "lsd"
+							}
+						]
+					}
+				]
+			}
+		]
+	}}
+	*/
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["emailUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailUser";
+	}
+	if (empty($_POST["passUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "passUser";
+	}
+	if (empty($_POST["idDevice"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idDevice";
+	}	
+	if ((!isset($_POST["firstRegistration"])) || 
+	    (($_POST["firstRegistration"] !== 'true') && ($_POST["firstRegistration"] !== 'false'))) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		
+		$error_parametros .= "firstRegistration";
+	}
+	if (empty($_POST["device_name"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "device_name";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+		
+	try {
+		//obtenemos el id del usuario, si es que es válido...
+		$sentencia = $conexion->prepare(
+				"SELECT id, lang, user, name, description, email ".
+				"FROM web_users ".
+				"WHERE email = :email AND password = :pass");
+
+		$sentencia->bindValue(':email', $_POST['emailUser'], PDO::PARAM_STR);
+		$sentencia->bindValue(':pass',  $_POST['passUser'],  PDO::PARAM_STR);
+
+		$sentencia->execute();
+		$users = $sentencia->fetchAll();
+		$nusers = count($users);
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nusers == 1) {
+			//el usuario y contraseña pareccen correctos, DEBEMOS comprobar si las credenciales han caducado o no.
+			$credCheck = checkExpiredCredentials(true, $_POST['emailUser']);
+			if ($credCheck['expired'] === true) {
+				//error credenciales expiradas
+				$jsontext .= '"error",';
+				if ($credCheck['firstUse'] === true) {
+				    $jsontext .= '"result_str": "EXPIRED_PASSWORD_FIRST_USE"';
+				} else {
+				    $jsontext .= '"result_str": "EXPIRED_PASSWORD"';
+				}
+				$jsontext .= "}";
+				return $jsontext;
+			}
+			
+			$user = $users[0];
+			$user_id = $user['id'];
+			$first_registration = $_POST['firstRegistration'];
+			$token = '';
+
+			//finalmente registramos el puesto fijo:
+			$resultRegister = registrarPuestoFijo($user_id, $_POST["idDevice"], $first_registration, $_POST["device_name"]);
+			if ($resultRegister === 'ERROR_REGISTERING_USER') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_REGISTERING_USER"';
+				$jsontext .= "}";
+				return $jsontext;
+			} else if ($resultRegister === 'ERROR_CHECK_ALREADY_LOGGED') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_CHECK_ALREADY_LOGGED"';
+				$jsontext .= "}";
+				return $jsontext;
+			} else if ($resultRegister === 'ERROR_DUPLICATED_DEVICE_ID') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_DUPLICATED_DEVICE_ID"';
+				$jsontext .= "}";
+				return $jsontext;
+			} else {
+				//si no hay error al registrar usuario continuamos
+				$token = $resultRegister;
+			}
+
+			$usuarioDevuelto = recuperarUsuarioWebUserInterna($token);
+			if ($usuarioDevuelto === 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+			} else {
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": "",';
+				$jsontext .= '"usuario": ' . $usuarioDevuelto;
+			}	
+		} else {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_OR_PASS_NOT_VALID"';
+		}
+		$jsontext .= "}";
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que cambia la contraseñad e un usuario administrador.
+** PARAMETROS:
+** $_POST['emailUser']   		--> email usuario
+** $_POST['oldPassword']    		--> pass del usuario ya codificada (md5) Formato: md5("PGP" + password)
+** $_POST['plainNewPassword']    	--> nueva contraseña de usuario en plano
+** $_POST['plainNewPassword2']		--> repeticion de nueva contraseña de usuario en plano para evitar errores tipograficos.
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+**	INCORRECT_PARAMETERS		--> Parametros incorrectos
+** 	USER_OR_PASS_NOT_VALID		--> Usuario o contraseña no validos.
+**	NEW_PASSWORDS_NOT_MATCH		--> Las nuevas contraseñas no coinciden
+** 	PASSWORD_RECENTLY_USED		--> Nueva contraseña no cumple politica de historico de contraseñas.
+**	WEAK_PASSWORD_STRENGTH		--> Contraseña debil, no cumple los requistiso de complejidad (mayusculas, minusculas, numeros y al menos 8 caracteres)
+** 	ERROR_SAVING_TRY_AGAIN		--> Error al guardar la nueva contraseña ¿volver a intentar?
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function changeAdminPassword() {
+	global $conexion;
+	
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["emailUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailUser";
+	}
+	if (empty($_POST["oldPassword"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "oldPassword";
+	}
+	if (empty($_POST["plainNewPassword"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "plainNewPassword";
+	}	
+	if (!isset($_POST["plainNewPassword2"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "plainNewPassword2";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+	
+	$emailUser = $_POST['emailUser'];
+	$oldPassword = $_POST['oldPassword'];
+	$plainNewPassword = $_POST['plainNewPassword'];
+	$plainNewPassword2 = $_POST['plainNewPassword2'];
+	
+	try {
+	    $sentencia = $conexion->prepare("SELECT id FROM web_users WHERE email=:email AND password=:password");
+	    $sentencia->bindValue(':email', $emailUser, PDO::PARAM_STR);
+	    $sentencia->bindValue(':password', $oldPassword, PDO::PARAM_STR);
+	    $sentencia->execute();
+
+	    $jsontext = '{';
+	    $jsontext .= '"resultado": ';
+
+	    if ($dat = $sentencia->fetch()) {
+		//el login es correcto,
+
+		$uppercase = preg_match('@[A-Z]@', $plainNewPassword);
+		$lowercase = preg_match('@[a-z]@', $plainNewPassword);
+		$number    = preg_match('@[0-9]@', $plainNewPassword);
+		if(!$uppercase || !$lowercase || !$number || strlen($plainNewPassword) < 8) {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "WEAK_PASSWORD_STRENGTH"';
+			$jsontext .= "}";
+		}else{
+		    if ($plainNewPassword == $plainNewPassword2){
+			//la doble valicacion de contraseña para evitar errores tipograficos es correcta.
+			$hashedNewPassword = hash('md5',"PGP".$plainNewPassword);
+
+			//validamos password no usada en historico
+			$numPassWordToSave = getNumAdminPassToSave($dat['id']);
+			if ($numPassWordToSave > 0) {
+			    $passUsedRecently = adminPasswordNotUsedRecently($dat['id'], $hashedNewPassword);
+			} else {
+			    $passUsedRecently = false;
+			}
+
+			if ($passUsedRecently === false) {
+			    $sentencia = $conexion->prepare("UPDATE web_users SET 
+								password = :newPassword, 
+								lastPassChangeDate=NOW() 
+							    WHERE email=:email AND id=:user_id");
+			    $sentencia->bindValue(':email', $emailUser, PDO::PARAM_STR);
+			    $sentencia->bindValue(':newPassword', $hashedNewPassword, PDO::PARAM_STR);
+			    $sentencia->bindValue(':user_id', intval($dat['id']), PDO::PARAM_INT);
+			    if ($sentencia->execute()) {
+				//damos el password por actualizado
+				$passwordSave = 0;
+
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": ""';
+				$jsontext .= "}";
+
+				//gestionamos el historico de passwords
+				if ($numPassWordToSave > 0) {
+				    try {
+					addAdminPasswordToHist($dat['id'], $hashedNewPassword);
+					deleteOldEntrysAdminPassHist($dat['id'],$numPassWordToSave);
+				    } catch (PDOException $ex) {
+					//nada, esto no afecta a que lo haya cambiado.
+				    }
+				}
+			    } else {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_SAVING_TRY_AGAIN"';
+				$jsontext .= "}";
+			    }
+			} else {
+			    $jsontext .= '"error",';
+			    $jsontext .= '"result_str": "PASSWORD_RECENTLY_USED"';
+			    $jsontext .= "}";
+			}
+		    }else{
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "NEW_PASSWORDS_NOT_MATCH"';
+			$jsontext .= "}";
+		    }
+		}
+	    }else{
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "USER_OR_PASS_NOT_VALID"';
+		$jsontext .= "}";
+	    }
+	} catch (PDOException $ex) {
+	    $jsontext = '{';
+	    $jsontext .= '"resultado": "exception",';
+	    $jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+	    $jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que comprueba si un usuario del puesto fijo (dado su email) tiene las 
+** credenciales caducadas o no. No se comprueba si son validas, si no si estan caducadas. 
+** Devuelve un json con el resultado.
+** PARAMETROS:
+** $_POST['emailUser']   		--> id de usuario
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+**	INCORRECT_PARAMETERS		--> no se han especificados los parametros necesarios. 
+**	EXPIRED_PASSWORD		--> Si el usuario tiene la contraseña caducada y debe cambiarla 
+**	EXPIRED_PASSWORD_FIRST_USE	--> Password expirada, es el primer login del usuario, debe cambiar la contraseña.
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function checkExpiredCredentials($interno = false, $user = "") {
+	global $conexion;
+	
+	if ($interno === false) {
+		//Validacion de parametros
+		$jsontext = '';
+
+		$error_parametros = '';
+		if (empty($_POST["emailUser"])) {
+			if ($error_parametros !== '') { $error_parametros .= ', ';}
+			$error_parametros .= "emailUser";
+		}
+		if ($error_parametros !== '') {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+			$jsontext .= "}";
+			return $jsontext;
+		}
+		//Fin Validación de parametros
+	}
+	
+	try{
+		$sentencia = $conexion->prepare(
+			"SELECT 
+			    USERS.email, 
+			    CASE 
+				WHEN IFNULL(MIN(NULLIF(COMP.expireAdminPassAfter, 0)), 0) = 0 
+				THEN 0 /* no ha expirado */ 
+				ELSE 
+				    /* comprobamos que hoy sea menor que la fecha de expiracion */ 
+				    CASE 
+					WHEN DATE_ADD(USERS.lastPassChangeDate, INTERVAL IFNULL(MIN(NULLIF(COMP.expireAdminPassAfter, 0)), 0) DAY) >= NOW() 
+					THEN 0 /* no ha expirado aun */ 
+					ELSE 1 /* expirada */ 
+				    END 
+			    END AS expiredPassword, 
+			    USERS.superUser,
+			    DATE_ADD(USERS.lastPassChangeDate, INTERVAL IFNULL(MIN(NULLIF(COMP.expireAdminPassAfter, 0)), 0) DAY) AS expiredDate
+			FROM web_users AS USERS 
+			    LEFT JOIN permisos_efectivos_company AS PERM ON (USERS.id = PERM.id_user) 
+			    LEFT JOIN web_company AS COMP ON (PERM.id_company = COMP.id) 
+			WHERE USERS.email = :user 
+			GROUP BY USERS.id");
+
+		if ($interno === true) {
+		    $sentencia->bindValue(':user', $user, PDO::PARAM_STR);
+		} else {
+		    $sentencia->bindValue(':user', $_POST['emailUser'], PDO::PARAM_STR);
+		}
+		$sentencia->execute();
+		$expired = false;
+		$firstUse = false;
+		if ($dat = $sentencia->fetch()){
+		    if (($dat['expiredPassword'] == "1") && ($dat['superUser'] != "1")) {
+			$expired = true;
+			if (!isset($dat['expiredDate'])) {
+			    $firstUse = true;
+			}
+		    }
+		}
+		if ($interno === true) {
+			return array("expired" => $expired, "firstUse"=>$firstUse);
+		} else {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+
+			if ($expired === true) {
+				//contraseña expirada
+				$jsontext .= '"error",';
+				if ($firstUse === true) {
+				    $jsontext .= '"result_str": "EXPIRED_PASSWORD_FIRST_USE"';
+				} else {
+				    $jsontext .= '"result_str": "EXPIRED_PASSWORD"';
+				}
+			} else {
+				//contraseña no expirada
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": ""';
+			}
+			$jsontext .= "}";
+			return $jsontext;
+		}
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+}
+
+/*********************************************************************************************
+** Función que valida las credenciales de usuario para poder deslogearse o 
+** acceder a areas de administracion y devuelve si las credenciales son correctas o no.
+** Parametros:
+** $_POST["token"]      --> el token del puesto fijo
+** $_POST['emailUser']  --> id de usuario
+** $_POST['passUser']   --> pass del usuario ya codificada (md5) Formato: md5("PGP" + password)
+** DEVUELVE
+** ok: El JSON con el resultado de la validacion
+** error:
+**    INVALID_TOKEN_OR_NOT_CONFIGURED  --> si no se encuentra el token especificado
+**    INCORRECT_PARAMETERS             --> si no se reciben todos los parametros previstos
+*********************************************************************************************/
+function checkLoginToLogout() {
+	global $conexion;
+    
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	if (empty($_POST["emailUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailUser";
+	}
+	if (empty($_POST["passUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "passUser";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+	
+	try {
+	    
+		$id_file = getID('FILE',$_POST["token"]);
+		if ($id_file === -99) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+			$jsontext .= "}";
+			return $jsontext;
+		}
+	
+		//obtenemos el id del usuario, si es que es válido...
+		$sentencia = $conexion->prepare(
+			"SELECT web_arx.id, permisos_efectivos_area.id_user 
+			 FROM web_arx
+				INNER JOIN web_arx_area ON web_arx_area.id_arx=web_arx.id
+				INNER JOIN permisos_efectivos_area ON web_arx_area.id_area = permisos_efectivos_area.id_area
+				INNER JOIN web_users ON permisos_efectivos_area.id_user=web_users.id
+			 WHERE web_arx.id = :file AND web_users.email = :email AND web_users.password = :pass 
+			 UNION DISTINCT
+			 SELECT web_arx.id, SU.id as id_user FROM web_arx INNER JOIN web_users AS SU ON SU.superUser = 1 
+			 WHERE web_arx.id = :file AND SU.email = :email AND SU.password = :pass"
+		);
+		$sentencia->bindValue(':file',  $id_file,  PDO::PARAM_STR);
+		$sentencia->bindValue(':email', $_POST['emailUser'], PDO::PARAM_STR);
+		$sentencia->bindValue(':pass',  $_POST['passUser'],  PDO::PARAM_STR);		
+
+		$sentencia->execute();
+		$users = $sentencia->fetchAll();
+		$nusers = count($users);
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nusers == 1) {
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": ""';
+		} else {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_OR_PASS_NOT_VALID"';
+		}
+		$jsontext .= "}";
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que registra un usuario de un puesto fijo en el sistema
+** Parametros
+** $idUsuario      		--> id del usuario logeado.
+** $idDevice       		--> id del dispositivo (para evitar dobles logins).
+** $first_registration 	--> boolean que indica si es el primer registro del deviceID o no.
+** $device_name    		--> nombre del dispositivo (meramente indicativo).
+** DEVUELVE:
+** 32HexDigitAsToken            --> si se ha registrado correctamente.
+** 'ERROR_REGISTERING_USER'     --> Si ocurre un error al registrar el  usuario y dispositivo
+** 'ERROR_CHECK_ALREADY_LOGGED' --> si ocurre un error al validar si el usuario y dispositivo ya estan logeados
+** 'ERROR_DUPLICATED_DEVICE_ID' --> si es el primero registro y el sistema detecta que el deviceID ya ha sido registrado antes.
+*********************************************************************************************/
+function registrarPuestoFijo($idUsuario, $idDevice, $first_registration, $device_name) {
+	global $conexion;
+
+	try {
+		$sentencia = $conexion->prepare('SELECT token FROM pgtime_puestos_fijos WHERE idDevice = :idDevice');
+		$sentencia->bindValue(':idDevice', $idDevice, PDO::PARAM_STR);
+		$sentencia->execute();
+
+		if($rows = $sentencia->fetch(PDO::FETCH_ASSOC)) {
+			if ($first_registration === 'true') {
+				return 'ERROR_DUPLICATED_DEVICE_ID';
+			} else {
+				return $rows['token'];
+			}
+		} else {
+			try {
+				//buscamos una clave unica que no este siendo usada actualmente
+				$secureReTrys= 30;
+				$i = 0;
+				do {
+					//en lugar de usar:
+					//$token = md5(uniqid(mt_rand(), true));
+					//uso:
+					$token = bin2hex(openssl_random_pseudo_bytes(16)); 
+					//debido a que  de esta forma, la clave es mas segura criptograficamente.
+					$sentencia = $conexion->prepare('SELECT token FROM pgtime_puestos_fijos WHERE token = :token');
+					$sentencia->bindValue(':token', $token, PDO::PARAM_STR);
+					$sentencia->execute();
+					$i++;
+				} while (($rows = $sentencia->fetch(PDO::FETCH_ASSOC)) && ($i <= $secureReTrys));
+				if ($i > $secureReTrys) {
+					return 'ERROR_REGISTERING_USER';
+				} else {
+					$sentencia = $conexion->prepare('INSERT INTO pgtime_puestos_fijos(token,token_time,idUsuario,idDevice,device_name,last_login) VALUES (:token, NOW(), :idUsuario, :idDevice, :device_name, NOW())');
+
+					$sentencia->bindValue(':token', 	$token,		PDO::PARAM_STR);
+					$sentencia->bindValue(':idUsuario', 	$idUsuario, 	PDO::PARAM_INT);
+					$sentencia->bindValue(':idDevice', 	$idDevice,	PDO::PARAM_STR);
+					$sentencia->bindValue(':device_name', 	$device_name, 	PDO::PARAM_STR);
+
+					//insertar los datos
+					$sentencia->execute();
+					return $token;
+				}
+			} catch (PDOException $ex) {
+				// echo 'Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+				return 'ERROR_REGISTERING_USER';
+			}
+		}
+	} catch (PDOException $ex) {
+		// echo 'Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		return 'ERROR_CHECK_ALREADY_LOGGED';
+	}
+}
+
+/*********************************************************************************************
+** Funcion que configura un puesto fijo en el sistema
+** Parametros
+** $_POST["idDevice"]       --> identificador del dispositivo.
+** $_POST["token"]          --> token identificador de la session.
+** $_POST["idEmpresa"]      --> id de la empresa seleccionada.
+** $_POST["idArea"]         --> id del area de la empresa seleccionada.
+** $_POST["idFile"]         --> id del file del area y empresa seleccionada.
+** $_POST["modoOP"]         --> Modo de funcionamiento del tablet. IN, OUT, IN_OUT (defecto).
+** $_POST["fechaFinFich"]   --> Fecha de finalizacion de fichajes, en caso de sobrepasarla, la tablet no permitirá mas accesos.
+** $_POST["validez_desde"]  --> fecha de validez del login.
+** $_POST["validez_hasta"]  --> fecha de fin de validez del login.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** error INCORRECT_PARAMETERS               --> si falta algun parametro.
+** error NO_ROW_UPDATED                     --> si la consulta no actualiza nada.
+** exception ERROR_UPDATING_FIXED_STATION   --> si ocurre un error al grabar los cambios.
+**
+*********************************************************************************************/
+function configurarPuestoFijo() {
+	global $conexion;
+	
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["idDevice"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idDevice";
+	}
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	if (empty($_POST["idEmpresa"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idEmpresa";
+	}
+	if (empty($_POST["idArea"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idArea";
+	}
+	if (empty($_POST["idFile"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idFile";
+	}
+	if (!isset($_POST["modoOP"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "modoOP";
+	}
+	if (empty($_POST["fechaFinFich"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "fechaFinFich";
+	}
+	if (empty($_POST["validez_desde"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "validez_desde";
+	}
+	if (empty($_POST["validez_hasta"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "validez_hasta";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+
+	try {
+		$sentencia = $conexion->prepare('UPDATE pgtime_puestos_fijos '.
+		                                'SET '.
+							'idEmpresa = :idEmpresa, '.
+							'idArea = :idArea, '.
+							'idFile = :idFile, '.
+							'modoOP = :modoOP, '.
+							'fechaFinFichajes = :fechaFinFich, '.
+							'validez_desde = :validez_desde, '.
+							'validez_hasta = :validez_hasta, '.
+							'last_login = NOW() '.
+						'WHERE token = :token AND idDevice = :idDevice');
+		
+		if (!empty($_POST["modoOP"])) {
+			$modoOP = $_POST["modoOP"];
+			if ($modoOP !== "IN" && $modoOP !== "OUT" && $modoOP !== "IN_OUT") {
+				$modoOP = "IN_OUT";
+			}
+		} else {
+			$modoOP = "IN_OUT";
+		}
+		
+		$sentencia->bindValue(':idEmpresa',     $_POST["idEmpresa"],     PDO::PARAM_INT);
+		$sentencia->bindValue(':idArea',        $_POST["idArea"],        PDO::PARAM_INT);
+		$sentencia->bindValue(':idFile',        $_POST["idFile"],        PDO::PARAM_INT);
+		$sentencia->bindValue(':modoOP', 	$modoOP, 		 PDO::PARAM_STR);
+		$sentencia->bindValue(':fechaFinFich',	$_POST["fechaFinFich"],	 PDO::PARAM_STR);
+		$sentencia->bindValue(':validez_desde',	$_POST["validez_desde"], PDO::PARAM_STR);
+		$sentencia->bindValue(':validez_hasta',	$_POST["validez_hasta"], PDO::PARAM_STR);
+		$sentencia->bindValue(':token', 	$_POST["token"],	 PDO::PARAM_STR);
+		$sentencia->bindValue(':idDevice', 	$_POST["idDevice"], 	 PDO::PARAM_STR);
+		$sentencia->execute();
+		if ($sentencia->rowCount() === 1) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": ""';
+			$jsontext .= "}";
+		} else {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "NO_ROW_UPDATED"';
+			$jsontext .= "}";
+		}
+	} catch (PDOException $ex) {
+		// echo 'Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "ERROR_UPDATING_FIXED_STATION"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que obtiene la configura un puesto fijo
+** Parametros
+** $_POST["token"]				--> token identificador de la session.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** error USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND	--> si la consulta no devuelve un resultao unico para el token
+** error INCORRECT_PARAMETERS			--> si falta algun parametro.
+** exception si ocurre algun error al ejecutar la consulta.
+*********************************************************************************************/
+function recuperarConfiguracionPuestoFijo() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		//consulta y generacion de resultado...
+		$sentencia = $conexion->prepare(
+			"SELECT idUsuario, token, idEmpresa, idArea, idFile, modoOP, botonESseparado, modoKiosko, screenSaverTime, fechaFinFichajes ".
+			"FROM pgtime_puestos_fijos ".
+			"WHERE token = :token");
+
+		$sentencia->bindValue(':token', $_POST['token'], PDO::PARAM_STR);
+
+		$sentencia->execute();
+		$config = $sentencia->fetchAll();	
+		$nconfig = count($config);
+		
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nconfig == 1) {
+			$conf = $config[0];
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"config": ';
+			$jsontext .= '{';
+			$jsontext .= '"usuarioID":'         . $conf['idUsuario']	. ',';
+			$jsontext .= '"token":"'	    . $conf['token']	. '",';
+			$jsontext .= '"empresaID":"'        . $conf['idEmpresa']	. '",';
+			$jsontext .= '"areaID":"'	    . $conf['idArea']		. '",';
+			$jsontext .= '"fileID":"'	    . $conf['idFile']		. '",';
+			$jsontext .= '"modoOP":"'	    . $conf['modoOP']		. '",';
+			$jsontext .= '"botonESseparado":"'  . $conf['botonESseparado']	. '",';
+			$jsontext .= '"modoKiosko":"'	    . $conf['modoKiosko']	. '",';
+			$jsontext .= '"screenSaverTime":"'  . $conf['screenSaverTime']	. '",';
+			$jsontext .= '"fechaFinFichajes":"' . $conf['fechaFinFichajes']	. '"';
+			$jsontext .= '}';
+		} else {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que deslogea un puesto fijo en el sistema
+** Parametros
+** $_POST["token"]          --> token identificador de la session.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** exception ERROR_LOGOUT   --> si ocurre un error al deslogear.
+**
+*********************************************************************************************/
+function logout() {
+	global $conexion;
+	
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$sentencia = $conexion->prepare('DELETE FROM pgtime_puestos_fijos WHERE token = :token');
+		$sentencia->bindValue(':token', $_POST["token"], PDO::PARAM_STR);
+		$sentencia->execute();
+
+		//da igual que consigamos borrar algo o no, si no lo podemos borrar es porque no existe, asi que ok.
+		//if ($sentencia->rowCount() === 1) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": ""';
+			$jsontext .= "}";
+		//}
+	} catch (PDOException $ex) {
+		//echo 'Error al borrar usuario.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "ERROR_LOGOUT"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos del usuario web_user a partir del token
+** Parametros
+** $token"  				--> token identificador de la session.
+** DEVUELVE:
+** JSON con el objeto			--> Si la consulta tiene exito y se encuentra el usuario
+** USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND	--> Si la consulta no devuelve un resultado unico (0 o >1 = error)
+**
+** Throws:
+** PDOException 			--> si ocurre un error al realizar la consulta de busqueda de usuario.
+*********************************************************************************************/
+function recuperarUsuarioWebUserInterna($token) {
+	global $conexion;
+	
+	//consulta y generacion de resultado...
+	$sentencia = $conexion->prepare(
+		"SELECT users.id, users.lang, users.user, users.name, users.description, users.email, users.superUser, puestos.token ".
+		"FROM web_users AS users INNER JOIN pgtime_puestos_fijos AS puestos ON users.id = puestos.idUsuario ".
+		"WHERE puestos.token = :token");
+
+	$sentencia->bindValue(':token', $token, PDO::PARAM_STR);
+
+	$sentencia->execute();
+	$users = $sentencia->fetchAll();
+	$nusers = count($users);
+	$jsontext = '';
+	if ($nusers == 1) {
+		$user = $users[0];
+		$user_id = $user['id'];
+		$superUser = ($user['superUser'] = "1" ? true : false);
+		$jsontext .= '{';
+		$jsontext .= '"id":'           . $user_id		. ',';
+		$jsontext .= '"lang":'         . $user['lang']		. ',';
+		$jsontext .= '"user":"'        . $user['user']		. '",';
+		$jsontext .= '"superUser":"'   . $superUser		. '",';
+		$jsontext .= '"name":"'        . $user['name']		. '",';
+		$jsontext .= '"description":"' . $user['description']	. '",';
+		$jsontext .= '"email":"'       . $user['email']		. '",';
+		$jsontext .= '"loginToken":"'  . $user['token']		. '",';
+		$jsontext .= '"companys": [';
+		//si es valido, buscamos las compañias asociadas:
+		try {
+			$sentencia = $conexion->prepare(
+				"SELECT DISTINCT comp.id, comp.name 
+				FROM permisos_efectivos_company AS P 
+				    INNER JOIN web_company AS comp ON P.id_company = comp.id 
+				    LEFT JOIN web_area_com AC ON AC.id_company = P.id_company 
+				    LEFT JOIN web_area AS A ON A.id =AC.id_area 
+				    LEFT JOIN web_arx_area AS ARX_A ON ARX_A.id_area = A.id
+				    LEFT JOIN web_arx AS ARX ON ARX.id = ARX_A.id_arx " 
+				//. " WHERE P.id_company IS NOT NULL AND A.modAT = 1 AND (ARX.fileStatus >= 7) AND (NOW() BETWEEN ARX.firstShiftDate AND DATE_ADD(ARX.lastShiftDate, INTERVAL 1 DAY))" . //planificaciones empezadas y no finalizadas
+				. " WHERE P.id_company IS NOT NULL AND A.modAT = 1 AND (ARX.fileStatus >= 7) AND (NOW() <= DATE_ADD(ARX.lastShiftDate, INTERVAL 1 DAY))" . //planificaciones no finalizadas
+				($superUser !== true ? " AND P.id_user = :idUser" : "")
+			);
+			if ($superUser !== true) {
+				$sentencia->bindValue(':idUser', $user_id, PDO::PARAM_BOOL);
+			}
+			$sentencia->execute();
+			$companys = $sentencia->fetchAll();
+			$ncompanys = count($companys);
+			if($ncompanys > 0) {
+				//recorremos las compañias
+				//recuperamos las compañias para escoger cual:
+				foreach($companys as $company) {
+					$comp_id = $company['id'];
+					$comp_name = $company['name'];
+					$jsontext .= '{"id": '		. $comp_id 	. ','.
+						     '"name": "' 	. $comp_name . '",';
+					$jsontext .= '"areas": [';
+					try {
+						//para cada compañia pueden existir varias areas:
+						$sentencia = $conexion->prepare(
+							"SELECT DISTINCT web_area.id, web_area.name 
+							 FROM web_area_com 
+							    INNER JOIN web_area ON web_area_com.id_area=web_area.id 
+							    INNER JOIN permisos_efectivos_area AS permisosArea ON web_area.id = permisosArea.id_area AND web_area_com.id_company = permisosArea.id_company 
+							    LEFT JOIN web_arx_area AS ARX_A ON ARX_A.id_area = web_area.id
+							    LEFT JOIN web_arx AS ARX ON ARX.id = ARX_A.id_arx " 
+							 // . " WHERE web_area_com.id_company=:idCompany AND web_area.modAT = 1 AND (ARX.fileStatus >= 7) AND (NOW() BETWEEN ARX.firstShiftDate AND DATE_ADD(ARX.lastShiftDate, INTERVAL 1 DAY)) " . //planificaciones empezadas y no finalizadas
+							. " WHERE web_area_com.id_company=:idCompany AND web_area.modAT = 1 AND (ARX.fileStatus >= 7) AND (NOW() <= DATE_ADD(ARX.lastShiftDate, INTERVAL 1 DAY)) " . //planificaciones no finalizadas
+							($superUser !== true ? " AND id_user = :idUser" : "")
+						);
+						if ($superUser !== true) {
+							$sentencia->bindValue(':idUser', $user_id, PDO::PARAM_BOOL);
+						}
+						$sentencia->bindValue(':idCompany', $comp_id, PDO::PARAM_INT);
+						$sentencia->execute();
+						$areas = $sentencia->fetchAll();
+						$nareas = count($areas);
+						if($nareas > 0) {
+							//recorremos las areas
+							foreach($areas as $area) {
+								$area_id = $area['id'];
+								$area_name = $area['name'];
+								$jsontext .= '{"id": '		. $area_id 		. ','.
+									     '"name": "'	. $area_name 	. '",';
+								$jsontext .= '"files": ['; //comienza array files										 
+								try {
+									//para cada compañia y area pueden existir varios files (planificaciones):
+									$sentencia = $conexion->prepare(
+										"SELECT DISTINCT web_arx.id, web_arx.name, web_arx.firstShiftDate, web_arx.lastShiftDate, 
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.takePhoto END AS takePhoto,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.saveRandomPhoto END AS saveRandomPhoto,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.mantainLastNPhoto END AS mantainLastNPhoto,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.keyboardSound END AS keyboardSound,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.accessSound END AS accessSound,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.cameraSound END AS cameraSound,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.saveLocationPFijo END AS saveLocationPFijo,
+										    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.signingWithNFC END AS signingWithNFC,
+										    PN.arx_nextPlanId AS nextFileID, N_ARX.firstShiftDate AS nextFirstShiftDate, N_ARX.lastShiftDate AS nextLastShiftDate
+										 FROM web_arx_area 
+										    INNER JOIN web_arx ON web_arx.id=web_arx_area.id_arx 
+										    LEFT JOIN ti_config ON ti_config.file = web_arx.id
+										    LEFT JOIN arx_prev_next AS PN ON (PN.arx_id = web_arx.id)
+										    LEFT JOIN web_arx AS N_ARX ON (N_ARX.id = PN.arx_nextPlanId) AND (PN.arx_nextPlanId IS NOT NULL) " 
+										 //. " WHERE web_arx_area.id_area = :idArea AND web_arx.parent IS NULL AND (web_arx.fileStatus >= 7) AND (NOW() BETWEEN web_arx.firstShiftDate AND DATE_ADD(web_arx.lastShiftDate, INTERVAL 1 DAY)) " //planificaciones empezadas y no finalizadas
+										 . " WHERE web_arx_area.id_area = :idArea AND web_arx.parent IS NULL AND (web_arx.fileStatus >= 7) AND (NOW() <= DATE_ADD(web_arx.lastShiftDate, INTERVAL 1 DAY)) " //planificaciones no finalizadas
+										 . " ORDER BY web_arx.changeDate DESC"
+									);
+									$sentencia->bindValue(':idArea', $area_id, PDO::PARAM_INT);
+									$sentencia->execute();
+									$files = $sentencia->fetchAll();
+									$nfiles = count($files);
+									
+									if($nfiles > 0) {
+										//recorremos los files
+										foreach($files as $file) {
+											$file_id = $file['id'];
+											$file_name = $file['name'];
+											$file_fsd = $file['firstShiftDate'];
+											$file_lsd = $file['lastShiftDate'];
+											$jsontext .= '{"id": ' 			. $file_id 	. ','.
+												      '"name": "' 		. $file_name 	. '",'.
+												      '"firstShiftDate": "' 	. $file_fsd 	. '",'.
+												      '"lastShiftDate": "' 	. $file_lsd 	. '",'.
+												      '"takePhoto": '		. $file['takePhoto'] 	. ','.
+												      '"saveRandomPhoto": ' 	. $file['saveRandomPhoto'] 	. ','.
+												      '"mantainLastNPhoto": ' 	. $file['mantainLastNPhoto'] 	. ','.
+												      '"keyboardSound": ' 	. $file['keyboardSound'] 	. ','.
+												      '"accessSound": ' 	. $file['accessSound'] 	. ','.
+												      '"cameraSound": ' 	. $file['cameraSound'] 	. ','.
+												      '"saveLocationPFijo": '	. $file['saveLocationPFijo'] 	. ','.
+												      '"signingWithNFC": '	. $file['signingWithNFC'];
+											//Si existe informacion de la proxima planificacion, la devolvemos
+											if (isset($file['nextFileID'])) {
+												$jsontext .= ',';
+												$jsontext .=	'"nextFileID": '	    . $file['nextFileID']	    . ','.
+														'"nextFirstShiftDate": "'   . $file['nextFirstShiftDate']   . '",'.
+														'"nextLastShiftDate": "'    . $file['nextLastShiftDate']    . '"';
+											}
+											$jsontext .= '},';
+										}
+										$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array files...
+									}
+									
+								} catch (PDOException $fe) {
+									//nada
+								} 
+								$jsontext .= "]"; //end array files
+								$jsontext .= '},';// end area object
+							}
+							$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array areas...
+						}
+					} catch (PDOException $ae) {
+						//nada
+					} 
+					$jsontext .= "]"; //en array areaas
+					$jsontext .= '},'; //end company object
+				}
+				$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array compañias...
+			}
+		} catch (PDOException $ce) {
+			//nada
+		}
+		$jsontext .= "]"; //en array companies
+		$jsontext .= "}"; //end user object
+		
+		//finalmente actualizamos la fecha de ultimo login
+		updateLastLogin($token);
+	} else {
+		return 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND';
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos del usuario web_user a partir del token
+** Parametros
+** $_POST["token"]          				--> token identificador de la session.
+** DEVUELVE:
+** Formato:
+** {
+**	"resultado": "ok|error|exception",	--> resultado de la operacion
+**	"result_str": "",			--> mensaje con error
+**	"usuario":				--> informacion del usuario devuelto
+**	    {
+**	    "id": 5				--> Código de usuario
+**	    "lang": ,				--> Id de lenguage.
+**	    "user": "",				--> Nombre de usuario
+**	    "superUser": "1",			--> Si es superusuario 1 o no (0)
+**	    "name": "javier",			--> Nombre del usuario (informal)
+**	    "description":"",			--> Campo descripcion del usuairo
+**	    "email":"",				--> Email del empleado (username)
+**	    "loginToken":"",			--> El token asignado en el login
+**	    "companys": [			--> Listado de compañías en las que puede acceder
+**		{
+**		    "id": 104,			--> Id de la compañía
+**		    "name": "Soluciones inf…",	--> Nombre de la compañía
+**		    "areas": [			--> Lista de áreas seleccionables
+**			{
+**			    "id": 211,		--> Id del área
+**			    "name": "Segovia",	--> Nombre del área
+**			    "files": [		--> Lista de planificaciones seleccionables
+**				{
+**				    "id":342,				--> Id de la planificación
+**				    "name": "2017",			--> Nombre de la planificación
+**				    "firstShiftDate": "2017-01-01",	--> Fecha de inicio de planificación
+**				    "lastShiftDate": "2017-12-31",	--> Fecha de fin de planificación
+**				    "takePhoto": 0|1,			--> si no se toma foto, 1 si se toma foto
+**				    "saveRandomPhoto": 50,		--> probabilidad de guardar foto de 0 a 100
+**				    "mantainLastNPhoto": 100,		--> numero de fotos a guardar, pasado el número se sobrescriben
+**				    "keyboardSound": 0|1,		--> 1 si se usan sonidos de teclado o 0 si no.
+**				    "accessSound":0|1,			--> 1 si se usan sonidos de acceso correcto o incorrecto, 0 si no.
+**				    "cameraSound":0|1,			--> 1 si se usa sonido de obturador al hacer foto, 0 si no.
+**				    "saveLocationPFijo":0|1,		--> 1 si se guarda la ubicacion del puesto fijo, 0 si no.
+**				    "signingWithNFC": 0|1,		--> 1 si se puede usar tecnología NFC para fichar, 0 en caso contrario.
+**				    "nextFileID": 486,			--> ID de la próxima planificación (si existe).
+**				    "nextFirstShiftDate": "2018-01-01", --> Fecha de comienzo de la nueva planificación (solo si existe nextFileID).
+**				    "nextLastShiftDate": "2018-12-31",	--> Fecha de fin de la nueva planificación (solo si existe nextFileID).
+**				}
+**			    ]
+**			}
+**		    ]
+**		}
+**	    ]
+**	} 
+**  }
+** Posibles valores para resultado error:
+**    USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND --> Error al recuperar informacion del usuario en base a su token recien generado
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function recuperarUsuarioWebUser() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$usuarioDevuelto = recuperarUsuarioWebUserInterna($_POST["token"]);
+		if ($usuarioDevuelto === 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+		} else {
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"usuario": ' . $usuarioDevuelto;
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que actualiza la fecha de ultimo login del usuario de puesto fijo
+** Parametros
+** $token       --> token identificador de la session.
+** DEVUELVE:
+** 
+*********************************************************************************************/
+function updateLastLogin($token) {
+	global $conexion;
+	try {
+		$sentencia = $conexion->prepare('UPDATE pgtime_puestos_fijos '.
+		                                'SET last_login = NOW() '.
+						'WHERE token = :token');
+		
+		$sentencia->bindValue(':token', $token, PDO::PARAM_STR);
+		$sentencia->execute();
+		if ($sentencia->rowCount() === 1) {
+			//modificacion correcta
+		}
+	} catch (PDOException $ex) {
+	}
+}
+
+/*********************************************************************************************
+** Funcion que obtiene la hora del servidor y la devuelve por JSON
+** Parametros
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** exception [mensaje de error]   --> si ocurre un error al deslogear.
+**
+*********************************************************************************************/
+function getServerTime() {	
+	$jsontext = '';
+	
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"ok",';
+		$jsontext .= '"result_str": "",';
+		$jsontext .= '"ServerTime": {';
+		$jsontext .= '"server_time":"' . date('d-m-Y H:i:s O') . '",'; //31-12-2016 15:05:03 +0200
+		$jsontext .= '"server_timezone":"' . date('O') . '",'; //+0200
+		$jsontext .= '"server_timezone_name":"' . date('e') . '",'; //Europe/Madrid
+		//$jsontext .= '"utc_time":"' . gmdate('d-m-Y H:i:s O') . '",'; //31-12-2016 15:05:03 +0200 //--> no es necesario, java guarda Date sin TimeZone, 
+		$jsontext .= '"java_format":"'.'dd-MM-yyyy HH:mm:ss Z' . '"';
+		$jsontext .= "}";
+		$jsontext .= "}";
+	} catch (Exception $ex) {
+		//echo 'Error al borrar usuario.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "$ex->getMessage()"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que valida el acceso de un usuario desde un puesto fijo en el servidor y devuelve
+** si la validacion es correcta y el id del usuario logeado.
+** Parametros:
+** $_POST["token"]      --> el token del puesto fijo
+** $_POST["password"]   --> la contraseña del empleado
+** $_POST["fecha_hora"] --> la fecha y hora del acceso en la zona horaria del servidor.
+** $_POST["incidencia"] --> codigo de la incincia marcada
+** $_POST["tipoAcceso"] --> tipo de acceso en el puesto fijo, IN, OUT, IN_OUT
+** $_POST["latitud"]    --> latitud de coordenada (formato WGS84) //(opcional)
+** $_POST["longitud"]   --> longitud de coordenada (formato WGS84) //(opcional)
+** $_POST["accuracy"]   --> precisión de la ubicación dfinida como el radio en metros de la circunferencia en la que se puede encotnrar la posicion real con un 68% de certeza //opcional
+** $_POST["photo"]	--> cadena base64 con la imagen a guardar
+** DEVUELVE
+** ok: Json con formato:
+**  {
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"curl_param": {}, 			--> Objeto JSON con los parametros de entrada
+**	"validacion": {
+**		'response': 'ok' | 'ko' | 'noF', --> Respuesta de la operacion de validacion
+**		'shift': valor, --> id del turno turno que tiene asignado el empleado en el fichaje.
+**		'inOrOut': valor, --> tipo de acceso, 0 para entrada, 1 para salida, -99 para mostrar ficahje correcto
+**		'emp': valor --> identificador del empleado, solo cuando response='ok' o (cuando response='ko' y error='repeat');
+**		'date': 'valor' --> fecha del fichaje
+**		'time': 'valor' --> hora del fichaje
+**		'incidence': valor --> id de incidencia del fichaje, 0 si no se ha marcado incidencia.
+**		'error': 'value', --> Codigo de error, solo cuando response = ko
+**			Posibles Valores de error:
+**				- error 	--> Error durante el fichaje
+**				- repeat 	--> Fichaje repetido, antes de 1min.
+**				- noDay 	--> Sin día de trabajo
+**				- noEmp 	--> Empleado desconocido.
+**				- noFile 	--> Código de error que indica que no existe planificacion válida. Solo cuando response = noF.
+**		'code': valor, --> cod de error, por defecto siempre 0, y solo se devuelve en caso de que response sea 'ko' o 'noF'
+**		'sign': valor, --> hora de fichaje, solo cuando response='ko' y error='repeat'
+**	}
+** } 
+** error:
+**    INVALID_TOKEN_OR_NOT_CONFIGURED  --> si no se encuentra el token especificado
+**    INVALID_DATE_FORMAT              --> si el formato del parametro $_POST["fecha_hora"] no es d-m-Y H:i:s O
+**    INCORRECT_PARAMETERS             --> si no se reciben todos los parametros previstos
+*********************************************************************************************/
+function validar_acceso_usuario_pfijo() {
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ((empty($_POST["password"])) && (empty($_POST["passwordHASH"]))) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "password";
+	}
+	if (empty($_POST["fecha_hora"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "fecha_hora";
+	}
+	if (!isset($_POST["incidencia"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "incidencia";
+	}
+	if (!isset($_POST["tipoAcceso"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tipoAcceso";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	$id_file = getID('FILE',$_POST["token"]);
+	if ($id_file === -99) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	$tipoAcceso = $_POST["tipoAcceso"];
+	if (empty($tipoAcceso)) {
+		$tipoAcceso = 'IN_OUT';
+	}
+	
+	if ($_POST["fecha_hora"] === "SERVER_TIME") {
+		$dateTime = new DateTime();
+	} else {
+		$dateTime = DateTime::createFromFormat('d-m-Y H:i:s O', $_POST["fecha_hora"]);
+	}
+	if ($dateTime !== FALSE) {
+		$fecha = $dateTime->format('Y-m-d');
+		$hora = $dateTime->format('H:i:00'); //00 porque al final no registramos los segundos.
+		$data['file'] = md5('PGT'. $id_file);
+		if (!empty($_POST['password'])) {
+		    $data['user'] = md5($id_file."Pass".$_POST['password']);
+		} else {
+		    $data['user'] = $_POST["passwordHASH"];
+		}
+		$data['date'] = $fecha;
+		$data['time'] = $hora;
+		$data['origin'] = -6;
+		$data['accessType'] = $tipoAcceso;
+		$data['incidence'] = $_POST['incidencia'];
+		if (!empty($_POST["latitud"])) {
+			$data['latitud'] = $_POST["latitud"];
+		}
+		if (!empty($_POST["longitud"])) {
+			$data['longitud'] = $_POST["longitud"];
+		}
+		if (!empty($_POST["accuracy"])) {
+			$data['accuracy'] = $_POST["accuracy"];
+		}
+			
+		$resultado = jsonConnToJson($data, 'signing.php');
+		$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"curl_param": '.json_encode($data).',';
+			$jsontext .= '"validacion": ';
+			$jsontext .= $resultado; //json_encode($resultado);
+		$jsontext .= "}";
+		
+		try {
+			//Si el fichaje es valido
+			$objResultado = json_decode($resultado);
+			if ($objResultado->response=='ok') {
+				//comprobamos si se ha enviado una photo para guardar, y en caso
+				//afirmativo procesamos el guardado en la bbdd:
+				if (isset($_POST['photo']) && ($_POST['photo'] !== "")) {
+					$data2['file'] = md5('PGT'. $id_file);
+					$data2['inOrOut'] = $objResultado->inOrOut;
+					$data2['emp'] = $objResultado->emp;
+					$data2['date'] = $objResultado->date;
+					$data2['time'] = $objResultado->time;
+					$data2['photo'] = $_POST['photo'];
+					$data2['android'] = 1;
+					$dummyResult = jsonConn($data2, 'savePhoto.php');
+				}
+			}
+		} catch (Exception $e) {
+		    //nada no es un proceso vital.
+		}
+	} else {
+		$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "INVALID_DATE_FORMAT"';
+		$jsontext .= "}";
+	}
+	
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que valida, mediante NFC, el acceso de un usuario desde un puesto fijo en el servidor y devuelve
+** si la validacion es correcta y el id del usuario logeado.
+** Parametros:
+** $_POST["token"]      --> el token del puesto fijo
+** $_POST["tag_nfc"]    --> el codigo NFC leido
+** $_POST["fecha_hora"] --> la fecha y hora del acceso en la zona horaria del servidor.
+** $_POST["incidencia"] --> codigo de la incincia marcada
+** $_POST["tipoAcceso"] --> tipo de acceso en el puesto fijo, IN, OUT, IN_OUT
+** $_POST["latitud"]    --> latitud de coordenada (formato WGS84) //(opcional)
+** $_POST["longitud"]   --> longitud de coordenada (formato WGS84) //(opcional)
+** $_POST["accuracy"]   --> precisión de la ubicación dfinida como el radio en metros de la circunferencia en la que se puede encotnrar la posicion real con un 68% de certeza //opcional
+** $_POST["photo"]	--> cadena base64 con la imagen a guardar
+** DEVUELVE
+** ok: Json con formato:
+**  {
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"curl_param": {}, 			--> Objeto JSON con los parametros de entrada
+**	"validacion": {
+**		'response': 'ok' | 'ko' | 'noF', --> Respuesta de la operacion de validacion
+**		'shift': valor, --> id del turno turno que tiene asignado el empleado en el fichaje.
+**		'inOrOut': valor, --> tipo de acceso, 0 para entrada, 1 para salida, -99 para mostrar ficahje correcto
+**		'emp': valor --> identificador del empleado, solo cuando response='ok' o (cuando response='ko' y error='repeat');
+**		'date': 'valor' --> fecha del fichaje
+**		'time': 'valor' --> hora del fichaje
+**		'incidence': valor --> id de incidencia del fichaje, 0 si no se ha marcado incidencia.
+**		'error': 'value', --> Codigo de error, solo cuando response = ko
+**			Posibles Valores de error:
+**				- error 	--> Error durante el fichaje
+**				- repeat 	--> Fichaje repetido, antes de 1min.
+**				- noDay 	--> Sin día de trabajo
+**				- noEmp 	--> Empleado desconocido.
+**				- noFile 	--> Código de error que indica que no existe planificacion válida. Solo cuando response = noF.
+**		'code': valor, --> cod de error, por defecto siempre 0, y solo se devuelve en caso de que response sea 'ko' o 'noF'
+**		'sign': valor, --> hora de fichaje, solo cuando response='ko' y error='repeat'
+**	}
+** }
+** error:
+**    NFC_CODE_UNKNOWN		       --> si el código NFC no es reconocido.
+**    INVALID_TOKEN_OR_NOT_CONFIGURED  --> si no se encuentra el token especificado
+**    INVALID_DATE_FORMAT              --> si el formato del parametro $_POST["fecha_hora"] no es d-m-Y H:i:s O
+**    INCORRECT_PARAMETERS             --> si no se reciben todos los parametros previstos
+*********************************************************************************************/
+function validar_acceso_usuario_pfijoNFC() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if (empty($_POST["tag_nfc"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tag_nfc";
+	}
+	if (empty($_POST["fecha_hora"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "fecha_hora";
+	}
+	if (!isset($_POST["incidencia"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "incidencia";
+	}
+	if (!isset($_POST["tipoAcceso"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tipoAcceso";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//ahora comprobamos si el tag NFC, es válido, obtenemos la contraseña 
+	//del empleado asociada y llamamos a la funcion /original de validar 
+	//acceso de usuario mediante contraseña.
+	$id_file = getID('FILE',$_POST["token"]);
+	$nfcCode = $_POST["tag_nfc"];
+	if ($id_file === -99) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		// comprobamos si la etiqueta NFC está asociada a un empleado de la planificacion para obtener su contraseña de acceso
+		$conn = $conexion->prepare ("SELECT emp_id, pass 
+					    FROM ti_nfc LEFT JOIN ti_employee ON (ti_nfc.file = ti_employee.file) AND (ti_nfc.emp_id = ti_employee.id_emp)
+	    				    WHERE ti_nfc.file = :file AND ti_nfc.type = 1 AND ti_nfc.NFC_code = :NFC_code"
+		);
+		$conn->execute (array (':file' => $id_file, ':NFC_code' => $nfcCode));
+		$numberRecords=$conn->rowCount();
+		if (($numberRecords === 1) && ($dat = $conn->fetch())) {
+			$empPass = $dat['pass'];
+			
+			//actualizamos la fecha de ultimo uso del tag NFC
+			try {
+				$conn = $conexion->prepare('UPDATE ti_nfc SET date_lastuse = NOW() WHERE file = :file AND NFC_code = :NFC_code');
+				$conn->execute (array (':file' => $id_file, ':NFC_code' => $nfcCode));
+			} catch (PDOException $ex) {
+			}
+			
+			//ahora llamamos a la funcion original que valida los datos
+			$_POST["passwordHASH"] = $empPass;
+			$jsontext = validar_acceso_usuario_pfijo();
+		} else {
+			//ERROR, No existe asociación del codigo leido.
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "NFC_CODE_UNKNOWN"';
+			$jsontext .= "}";
+		}
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+ * Función que valida, mediante NFC HCE, el acceso de un usuario desde un puesto 
+ * fijo en el servidor y devuelve si la validacion es correcta y el id del usuario logeado.
+ * Parametros:
+ * $_POST["token"]      --> el token del puesto fijo
+ * $_POST["tag_HCE_nfc"]    --> el codigo NFC leido
+ * $_POST["fecha_hora"] --> la fecha y hora del acceso en la zona horaria del servidor.
+ * $_POST["incidencia"] --> codigo de la incincia marcada
+ * $_POST["tipoAcceso"] --> tipo de acceso en el puesto fijo, IN, OUT, IN_OUT
+ * $_POST["latitud"]    --> latitud de coordenada (formato WGS84) //(opcional)
+ * $_POST["longitud"]   --> longitud de coordenada (formato WGS84) //(opcional)
+ * $_POST["accuracy"]   --> precisión de la ubicación dfinida como el radio en metros de la circunferencia en la que se puede encotnrar la posicion real con un 68% de certeza //opcional
+ * $_POST["photo"]	--> cadena base64 con la imagen a guardar
+ * DEVUELVE
+ * ok: Json con formato:
+ *  {
+ *	"resultado": "ok|error|exception",  --> resultado de la operacion
+ *	"result_str": "",		    --> mensaje con error
+ *	"curl_param": {}, 			--> Objeto JSON con los parametros de entrada
+ *	"validacion": {
+ *		'response': 'ok' | 'ko' | 'noF', --> Respuesta de la operacion de validacion
+ *		'shift': valor, --> id del turno turno que tiene asignado el empleado en el fichaje.
+ *		'inOrOut': valor, --> tipo de acceso, 0 para entrada, 1 para salida, -99 para mostrar ficahje correcto
+ *		'emp': valor --> identificador del empleado, solo cuando response='ok' o (cuando response='ko' y error='repeat');
+ *		'date': 'valor' --> fecha del fichaje
+ *		'time': 'valor' --> hora del fichaje
+ *		'incidence': valor --> id de incidencia del fichaje, 0 si no se ha marcado incidencia.
+ *		'error': 'value', --> Codigo de error, solo cuando response = ko
+ *			Posibles Valores de error:
+ *				- error 	--> Error durante el fichaje
+ *				- repeat 	--> Fichaje repetido, antes de 1min.
+ *				- noDay 	--> Sin día de trabajo
+ *				- noEmp 	--> Empleado desconocido.
+ *				- noFile 	--> Código de error que indica que no existe planificacion válida. Solo cuando response = noF.
+ *		'code': valor, --> cod de error, por defecto siempre 0, y solo se devuelve en caso de que response sea 'ko' o 'noF'
+ *		'sign': valor, --> hora de fichaje, solo cuando response='ko' y error='repeat'
+ *	}
+ * }
+ * error:
+ *    NFC_CODE_INVALID			--> si el código NFC no es válido o no es correctamente parseado
+ *    NFC_CODE_NOT_FOUND		--> si el código NFC aparentemente es válido pero no se encuentra una sesion abierta del portal del empleado para dicho código.
+ *    NFC_CODE_NOT_MATCH_PFIJO		--> si el código NFC no encaja con la configuración del puesto fijo (distinta seleccion de empresa, area, file).
+ *    NFC_CODE_WITHOUT_EMP_PIN		--> si el codigo NFC es válido, encaja con el pfijo pero no existe un pin o empleado para dicho código.
+ *    INVALID_TOKEN_OR_NOT_CONFIGURED	--> si no se encuentra el token especificado
+ *    INVALID_DATE_FORMAT		--> si el formato del parametro $_POST["fecha_hora"] no es d-m-Y H:i:s O
+ *    INCORRECT_PARAMETERS		--> si no se reciben todos los parametros previstos
+ ********************************************************************************************/
+function validar_acceso_usuario_pfijoNFC_HCE() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if (empty($_POST["tag_HCE_nfc"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tag_HCE_nfc";
+	}
+	if (empty($_POST["fecha_hora"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "fecha_hora";
+	}
+	if (!isset($_POST["incidencia"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "incidencia";
+	}
+	if (!isset($_POST["tipoAcceso"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tipoAcceso";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//ahora comprobamos si el tag NFC HCE, es válido mediante su parseo, 
+	//y con ello obtenremos la contraseña del empleado asociada y llamamos 
+	//a la funcion original de validar acceso de usuario mediante contraseña.
+	$id_file = getID('FILE',$_POST["token"]);
+	$nfcCode = $_POST["tag_HCE_nfc"];
+	if ($id_file === -99) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//parseamos nfcCode:
+	$nfcCodeParsed = array();
+	$nfcCode = rtrim($nfcCode, ';'); //debido a que explode, devolvera una 
+	//posicion mas del array con cadena vacia, elimino el ; si existe al 
+	//final de la cadena.
+	
+	$nfcCodeParts = explode(';', $nfcCode);
+	if ($nfcCode)
+	if (count($nfcCodeParts) == 5) {
+		foreach ($nfcCodeParts AS $nfcCodePart) {
+			$nfcCodeSubparts = explode(":",$nfcCodePart);
+			if (count($nfcCodeSubparts) == 2) {
+				$fieldName = $nfcCodeSubparts[0];
+				switch ($fieldName) {
+					case "CompID":
+						$nfcCodeParsed[':comp_id'] = intval($nfcCodeSubparts[1]);
+						break;
+					case "AreaID":
+						$nfcCodeParsed[':area_id'] = intval($nfcCodeSubparts[1]);
+						break;
+					case "FileID":
+						$nfcCodeParsed[':file_id'] = intval($nfcCodeSubparts[1]);
+						break;
+					case "EmplID":
+						$nfcCodeParsed[':emp_id'] = intval($nfcCodeSubparts[1]);
+						break;
+					case "CRC":
+						$nfcCodeParsed[':emp_token'] = $nfcCodeSubparts[1];
+						break;
+					default:
+						break;
+				}
+			}
+		}
+	}
+	try {
+		if (count($nfcCodeParsed) == 5) {
+			//Vale, tenemos el objeto parseado, validamos los datos
+			//Debemos validar que token, empresa, area, file y empleado coinciden y existen
+			//Ademas empresa, area y file deben coincidir con este puesto fijo
+			
+			//Preparamos parametros para la consulta
+			$params = $nfcCodeParsed; //copiamos el array con parametros procedentes del codigo NFC
+			$params[':token'] = $_POST["token"];
+			//Preparamos la consulta
+			$conn = $conexion->prepare("SELECT APP.idEmpleado, PGT.pass, PFIJO.token AS tokenPFijo
+						    FROM fiw_logins_app AS APP
+							    LEFT JOIN ti_employee AS PGT ON (PGT.file = APP.idFile) AND (PGT.id_emp = APP.idEmpleadoPlan)
+							    LEFT JOIN pgtime_puestos_fijos AS PFIJO ON (PFIJO.idEmpresa = APP.idEmpresa) AND (PFIJO.idArea = APP.idArea) AND (PFIJO.idFile = APP.idFile) AND (PFIJO.token = :token)
+						    WHERE APP.idEmpresa = :comp_id
+							AND APP.idArea = :area_id
+							AND APP.idFile = :file_id
+							AND APP.idEmpleadoPlan = :emp_id
+							AND APP.token = :emp_token");
+			$conn->execute($params);
+			$numberRecords=$conn->rowCount();
+			if (($numberRecords === 1) && ($dat = $conn->fetch())) {
+				$errorCode = "";
+				//comprobamos si está definido el campo idEmpleado --> singifica que el codigo NFC del empleado es valido y esta configurado
+				if (($errorCode === "") && (!isset($dat['idEmpleado']))) {
+					$errorCode = "NFC_CODE_NOT_FOUND";
+				}
+				//comprobamos si está definido el campo tokenPFijo --> significa que el puesto fijo esta configurado con los mismos parametros que el codigo NFC del empleado y que se puede fichar.
+				if (($errorCode === "") && (!isset($dat['tokenPFijo']))) {
+					$errorCode = "NFC_CODE_NOT_MATCH_PFIJO";
+				}
+				//comprobamos si está definido el campo pass --> significa que se ha encontrado la contraseña del empleado para pgtime.
+				if (($errorCode === "") && (!isset($dat['pass']))) {
+					$errorCode = "NFC_CODE_WITHOUT_EMP_PIN";
+				}
+				if ($errorCode == "") {
+					//datos válidos para fichaje, ya tenemos el pass del empleado para fichar, lo usamos para llamar a la función que valida y registra el fichaje.
+					$empPass = $dat['pass'];
+					//ahora llamamos a la funcion original que valida los datos
+					$_POST["passwordHASH"] = $empPass;
+					$jsontext = validar_acceso_usuario_pfijo();
+				} else {
+					//Codigo NFC no encontrado, no encaja con pfijo o no existe empleado con pin asociado: Devolver el error producido.
+					$jsontext = '{';
+					$jsontext .= '"resultado": "error",';
+					$jsontext .= '"result_str": "'.$errorCode.'"';
+					$jsontext .= "}";
+				}
+			} else {
+				//ERROR la consulta no devuelve resultados... el código NFC no es válido
+				$jsontext = '{';
+				$jsontext .= '"resultado": "error",';
+				$jsontext .= '"result_str": "NFC_CODE_NOT_FOUND"';
+				$jsontext .= "}";
+    			}
+		} else {
+			//ERROR, objeto no valido
+			$jsontext = '{';
+			$jsontext .= '"resultado": "error",';
+			$jsontext .= '"result_str": "NFC_CODE_INVALID"';
+			$jsontext .= "}";
+		}
+	} catch (PDOException $ex) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": "exception",';
+			$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+			$jsontext .= "}";
+	}	
+	
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que vincula un tag NFC a un empleado.
+** Parametros:
+** $_POST["token"]      --> el token del puesto fijo
+** $_POST["emp_code"]   --> la contraseña o código de pgtime del empleado
+** $_POST["tag_nfc"]	--> el identificador del tag NFC.
+** DEVUELVE
+** ok: El JSON con el resultado de la vinculación
+** error:
+**    INVALID_TOKEN_OR_NOT_CONFIGURED  --> si no se encuentra el token especificado
+**    INVALID_NFC_TAG_ID	       --> si el id del tag NFC no es valido
+**    EMP_CODE_UNKNOWN		       --> el código del empleado no existe
+**    UNKNOWN_ERROR		       --> si ocurre error al grabar la transaccion
+**    INCORRECT_PARAMETERS             --> si no se reciben todos los parametros previstos
+*********************************************************************************************/
+function vincular_tag_nfc_to_empleado() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if (empty($_POST["emp_code"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emp_code";
+	}
+	if (empty($_POST["tag_nfc"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tag_nfc";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	$id_file = getID('FILE',$_POST["token"]);
+	$fecha = date('Y-m-d H:i:s');
+	$NFC_code = $_POST['tag_nfc'];
+	$empCode = md5($id_file."Pass".$_POST['emp_code']);
+	
+	if ($id_file === -99) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	if (!preg_match('/^(([a-f0-9]){2}(-){1}){3,7}(([a-f0-9]){2}){1}$/', $NFC_code)) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_NFC_TAG_ID"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+	
+		$conexion->beginTransaction();
+		
+		// comprobamos si el codigo del empleado es correcto
+		$conn = $conexion->prepare ( "SELECT id_emp FROM ti_employee WHERE pass=:pass AND file=:file" );
+		$conn->execute (array (':file' => $id_file, ':pass' => $empCode));
+		$numberRecords=$conn->rowCount();
+		if (($numberRecords === 1) && ($dat = $conn->fetch())) {
+			$idEmp = $dat['id_emp'];
+	    
+			//Borramos cualquier vinculacion previa del empleado o del tag NFC
+			$sentencia = $conexion->prepare("DELETE FROM ti_nfc WHERE ((file=:file) AND (type = :type) AND ((emp_id = :emp_id) OR (NFC_code = :NFC_code)))");
+			$sentencia->execute(array(':file' => $id_file, ':type' => 1, ':emp_id' => $idEmp, ':NFC_code' => $NFC_code));
+			
+			//ahora grabamos la vinculación.
+			$sentencia = $conexion->prepare("INSERT INTO ti_nfc (file, emp_id, type, enabled, date_registered, NFC_code) VALUES (:file, :emp_id, :type, :enabled, :date_registered, :NFC_code)");
+			$sentencia->execute(array(':file' => $id_file, ':emp_id' => $idEmp, ':type' => 1, ':enabled' => 1, ':date_registered' => $fecha, ':NFC_code' => $NFC_code));
+			
+			if ($conexion->commit()) {
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": ""';
+			} else {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "UNKNOWN_ERROR"';
+			}
+		} else {
+			//ERROR, el codigo no se corresponde con ningun empleado
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "EMP_CODE_UNKNOWN"';
+		}
+		
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos solicitados a partir del token
+** Parametros
+** un input json con los parametros para realizar las consultas.
+** El formato del input será:
+** {
+**	"nQuery" : "QUERY_EMPLEADOS",		--> Un string con el id de consulta de entre los posibles (Obligatorio).
+**	
+**	    Posibles valores:
+**		QUERY_EMPLEADOS	    -->	Listado de ids y nombres de empleados, todos, sin mas filtros adicionales.
+**		QUERY_INCIDENCIAS   --> Listado de incidencias seleccionables, tiene como modificador el parametro tokenOrigin. En funcion del valor, devolverá las incidencias de pgtime, del portal o todas en general.
+**		QUERY_SHIFTTYPES    --> Listado de turnos, todos, sin mas filtros adicionales.
+**		QUERY_LOCATION	    --> Listado de ubicaciones, todas, sin mas filtros adicionales.
+**		QUERY_SKILLS	    --> Listado de habilidades, todas, sin mas filtros adicionales.
+**		QUERY_TIPOS_TT	    --> Listado de tipos de turno del calendario del empleado. Estos ids se vinculan con el campo stype de TIMETABLE
+**		QUERY_TIMETABLE	    --> Listado de turnos asinados a los empleados en un rango de fecha. Esta consulta acepta filtros adicionales (employeeInClause, dateStart, dateEnd).
+**		QUERY_FESTIVOS	    --> Listado de festivos asignados a los empleados. Esta consulta acepta filtros adicionales (employeeInClause), por defecto, para el portal, solo se devolveran los festivos del empleado logeado, usar clausula para recuperar otros ids de empleados.
+			    
+**	"token" : "asdfghjklqwertyuiop"		--> Un string con el token asignado a la aplicacion en el login (Obligatorio)
+**	"tokenOrigin" : "PGTIME|PGEMP|GENERAL"	--> Un string con el tipo de acceso. Este campo define el origen de la petición y siempre se usará el mismo dependiendo de que APP realice la peticion (portal o fichajes). 
+**	    Posibles valores:
+**		PGTIME --> para puesto fijo. (En caso de consulta de datos especificos devolverá datos relativos al módulo de fichajes)
+**		PGEMP --> modo Portal del empleado. (En caso de consulta de datos especificos devolverá datos relativos al módulo del portal del empleado)
+**		GENERAL --> Api General (Sin uso actualmente). (Para cuando se deban obtener otro tipo de datos)
+**				
+**		(Se requiere al menos una de las opciones)
+ * 
+**	"employeeInClause" : [1,2,3],		--> Arrays de ids de empleados
+**	"dateStart" = "2017-09-01",		--> Fecha de inicio del filtro (opcional)
+**	"dateEnd" = "2017-09-10"		--> Fecha de fin del filtro (opcional)
+** }
+** 
+** DEVUELVE:
+** Json con resultados ok, error, exception,
+** Formato:
+**  {
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"result_data":			    --> informacion del usuario devuelto
+**	    [
+ *		{ obj 1}, {obj 2}
+**	    ]
+** }
+** Posibles valores para resultado error:
+**	NO_PARAMETERS					--> No se ha recibido un input json valido.
+**	INCORRECT_PARAMETERS[paramName1, paramName2]	--> Parametros incorrectos con el listado 
+**							    de los parametros (nombre del parametros) 
+**							    que no estan definidos. Si el error es de 
+**							    valor de tokenOrigin, el error devolvería: 
+**							    "tokenOriginValue".
+** 	INVALID_TOKEN_OR_NOT_CONFIGURED			--> El token no se ha encontrado o no es válido (no se ha configurado).
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function getJsonArraySQL($arrayParams) {
+	global $conexion;
+	
+	//comprobacion de parametros
+	$error_parametros = '';
+	if (empty($arrayParams["nQuery"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "nQuery";
+	}
+	if (empty($arrayParams["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	$tokenOrigin = "";
+	if (empty($arrayParams["tokenOrigin"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "tokenOrigin";
+	} else {
+		$tokenOrigin = $arrayParams["tokenOrigin"];
+		if (($tokenOrigin !== "PGTIME") && ($tokenOrigin !== "PGEMP") && ($tokenOrigin !== "GENERAL")) {
+			if ($error_parametros !== '') { $error_parametros .= ', ';}
+			$error_parametros .= "tokenOriginValue";
+		}
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//Variables consultas
+	$nQuery = $arrayParams["nQuery"];
+	$token = $arrayParams["token"];	
+	
+	if ($tokenOrigin === "PGTIME") {
+	    $id_file = getID('FILE',$token);
+	} elseif ($tokenOrigin === "PGEMP") {
+	    $id_file = getID_PEmp('FILE',$token);
+	    $id_emp = getID_PEmp('EMPLEADO',$token);
+	} elseif ($tokenOrigin === "GENERAL") {
+	    //de momento nada
+	    $id_file = -99;
+	}
+	
+	$employeeClause = "";
+	if (isset($arrayParams["employeeInClause"])) {
+	    $numIds = count($arrayParams["employeeInClause"]);
+	    foreach ($arrayParams["employeeInClause"] AS $value) {
+		if ($employeeClause != "") {
+		    $employeeClause .= ',';
+		}
+		$employeeClause .= intval($value);
+	    }
+	    if ($numIds > 1) {
+		$employeeClause = "IN ( " . $employeeClause . " )";
+	    } elseif ($numIds == 1) {
+		$employeeClause = "= " . $employeeClause . " ";
+	    } 
+	} elseif (isset($id_emp)) {
+	    $employeeClause = "= " . $id_emp . " ";
+	}
+	$bd = conectbd();
+	$dateStart = "";
+	if (!empty($arrayParams["dateStart"])) {
+	    $dateStart = mysqli_real_escape_string($bd, $arrayParams["dateStart"]);
+	}
+	$dateEnd = "";
+	if (!empty($arrayParams["dateEnd"])) {
+	    $dateEnd = mysqli_real_escape_string($bd, $arrayParams["dateEnd"]);
+	}
+	$bd->close();
+	
+	if ($id_file === -99) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//no es necesario bind de parametros, id_file proviene de nuestra bbdd en consulta previa con getID() que si hace bind, por ello el resultado es confiable.
+	$QUERY_EMPLEADOS = 'SELECT id, name FROM pg_employees AS emp WHERE (emp.file = ' . $id_file . ')'; 
+	$QUERY_SHIFTTYPES = 'SELECT id, ShiftType, Description, NightShift, StartTime, EndTime, SplitShift, StartTime2, EndTime2, Color FROM pgplanning.pg_shifttypes WHERE (file = ' . $id_file . ')';
+	$QUERY_SKILLS = 'SELECT id, Skill, Code FROM pg_skills WHERE file = ' . $id_file;
+	$QUERY_TIPOS_TT = 'SELECT id, ShiftType AS Code, Description, Color FROM pg_shiftext WHERE file = ' . $id_file . ' AND id > 1 AND id < 9';
+
+	$QUERY_TIMETABLE = "SELECT TT.id, TT.stype, TT.Date, TT.Employee, TT.ShiftType, TT.Location, TT.inchange, INCI.itype AS incitype, 
+				/* Obtenemos habilidades, de las demandas, o si no estan definidas, de la ficha del empleado o contrato */
+				CASE WHEN (CR.Skills IS NOT NULL) 
+				    THEN CR.Skills 
+				    ELSE CASE WHEN (EMP.specialContract IS NOT NULL AND (EMP.specialContract = 1)) THEN EMP_SK.id_skills ELSE CON_SK.id_skills END 
+				END AS Skills, 
+				CASE WHEN (CR.Skills IS NOT NULL) THEN CR.allSkills ELSE 0 END AS allSkills 
+			    FROM st_timetable AS TT LEFT JOIN 
+				(SELECT INCI_DAT.* 
+				    FROM (SELECT * FROM st_incidents WHERE file = " . $id_file . " ORDER BY id DESC ) AS INCI_DAT 
+				    WHERE INCI_DAT.itype > 0
+				    GROUP BY INCI_DAT.file, INCI_DAT.employee, INCI_DAT.date
+				) AS INCI
+				ON ((TT.stype = 5) AND (TT.file = INCI.file) AND (TT.Date = INCI.DATE) AND (TT.Employee = INCI.employee) AND (INCI.itype > 0)) 
+				LEFT JOIN st_coverreqs AS CR ON ((CR.file = TT.file) AND (CR.id = TT.shift))
+				LEFT JOIN pg_employees AS EMP ON ((TT.file = EMP.file) AND (TT.Employee = EMP.id))
+				LEFT JOIN (SELECT id_employee, GROUP_CONCAT(DISTINCT id_skills ORDER BY id_skills SEPARATOR ',') AS id_skills FROM pg_employee_skills WHERE file = " . $id_file . " GROUP BY id_employee) AS EMP_SK ON (EMP_SK.id_employee = EMP.id)
+				LEFT JOIN (SELECT id_contract, GROUP_CONCAT(DISTINCT id_skills ORDER BY id_skills SEPARATOR ',') AS id_skills FROM pg_contract_skills WHERE file = " . $id_file . " GROUP BY id_contract) AS CON_SK ON (CON_SK.id_contract = EMP.Contract) 
+				WHERE TT.file= " . $id_file . (($dateStart != "") ? " AND TT.date>= '".$dateStart."'" : "" ) . (($dateEnd != "") ? " AND TT.date<= '".$dateEnd."'" : "" ) . ($employeeClause != "" ? " AND TT.Employee " . $employeeClause : "");
+	$QUERY_LOCATION = "
+		SELECT locationID AS id, code, title, parent_id,
+		    CASE WHEN L1Tit <> '' THEN
+				CASE WHEN L2Tit <> '' THEN
+					CASE WHEN L3Tit <> '' THEN
+						CASE WHEN L4Tit <> '' THEN
+							CASE WHEN L5Tit <> '' THEN
+								CONCAT(L1Tit,' - ',L2Tit,' - ',L3Tit,' - ',L4Tit,' - ',L5Tit)
+							ELSE
+								CONCAT(L1Tit,' - ',L2Tit,' - ',L3Tit,' - ',L4Tit)
+							END
+						ELSE
+							CONCAT(L1Tit,' - ',L2Tit,' - ',L3Tit)
+						END
+					ELSE
+						CONCAT(L1Tit,' - ',L2Tit)
+					END
+			ELSE
+					L1Tit
+			END
+		    ELSE
+				''
+		    END as chain_description
+		FROM 
+		(
+
+		    SELECT L1.id AS locationID, L1.code AS code, L1.title AS title, L1.parent_id, L1.id AS L1Id, CASE WHEN L1.title IS NOT NULL THEN L1.title ELSE '' END AS L1Tit, NULL AS L2Id, '' AS L2Tit, NULL  AS L3Id, '' AS L3Tit, NULL AS L4Id, '' AS L4Tit, NULL AS L5Id, '' AS L5Tit
+		    FROM pg_location AS L1
+		    WHERE L1.parent_id IS NULL AND L1.file = " . $id_file . "
+		    
+		    UNION DISTINCT
+		    SELECT L2.id AS locationID, L2.code AS code, L2.title AS title, L2.parent_id, L1.id AS L1Id, CASE WHEN L1.title IS NOT NULL THEN L1.title ELSE '' END AS L1Tit, L2.id AS L2Id, CASE WHEN L2.title IS NOT NULL THEN L2.title ELSE '' END AS L2Tit, NULL AS L3Id, '' AS L3Tit, NULL AS L4Id, '' AS L4Tit, NULL AS L5Id, '' AS L5Tit
+		    FROM pg_location AS L1
+			LEFT JOIN pg_location AS L2 ON ((L1.file = L2.file) AND (L2.parent_id = L1.id))
+		    WHERE L1.parent_id IS NULL AND L1.file = " . $id_file . "
+		
+		    UNION DISTINCT
+		    
+		    SELECT L3.id AS locationID, L3.code AS code, L3.title AS title, L3.parent_id, L1.id AS L1Id, CASE WHEN L1.title IS NOT NULL THEN L1.title ELSE '' END AS L1Tit, L2.id AS L2Id, CASE WHEN L2.title IS NOT NULL THEN L2.title ELSE '' END AS L2Tit, L3.id AS L3Id, CASE WHEN L3.title IS NOT NULL THEN L3.title ELSE '' END AS L3Tit, NULL AS L4Id, '' AS L4Tit, NULL AS L5Id, '' AS L5Tit
+		    FROM pg_location AS L1
+			LEFT JOIN pg_location AS L2 ON ((L1.file = L2.file) AND (L2.parent_id = L1.id))
+			LEFT JOIN pg_location AS L3 ON ((L1.file = L3.file) AND (L3.parent_id = L2.id))
+		    WHERE L1.parent_id IS NULL AND L1.file = " . $id_file . "
+		    
+		    UNION DISTINCT
+		    
+		    SELECT L4.id AS locationID, L4.code AS code, L4.title AS title, L4.parent_id, L1.id AS L1Id, CASE WHEN L1.title IS NOT NULL THEN L1.title ELSE '' END AS L1Tit, L2.id AS L2Id, CASE WHEN L2.title IS NOT NULL THEN L2.title ELSE '' END AS L2Tit, L3.id AS L3Id, CASE WHEN L3.title IS NOT NULL THEN L3.title ELSE '' END AS L3Tit, L4.id AS L4Id, CASE WHEN L4.title IS NOT NULL THEN L4.title ELSE '' END AS L4Tit, NULL AS L5Id, '' AS L5Tit
+		    FROM pg_location AS L1
+			LEFT JOIN pg_location AS L2 ON ((L1.file = L2.file) AND (L2.parent_id = L1.id))
+			LEFT JOIN pg_location AS L3 ON ((L1.file = L3.file) AND (L3.parent_id = L2.id))
+			LEFT JOIN pg_location AS L4 ON ((L1.file = L4.file) AND (L4.parent_id = L3.id))
+		    WHERE L1.parent_id IS NULL AND L1.file = " . $id_file . "
+		    
+		    UNION DISTINCT
+		    
+		    SELECT L5.id AS locationID, L5.code AS code, L5.title AS title, L5.parent_id, L1.id AS L1Id, CASE WHEN L1.title IS NOT NULL THEN L1.title ELSE '' END AS L1Tit, L2.id AS L2Id, CASE WHEN L2.title IS NOT NULL THEN L2.title ELSE '' END AS L2Tit, L3.id AS L3Id, CASE WHEN L3.title IS NOT NULL THEN L3.title ELSE '' END AS L3Tit, L4.id AS L4Id, CASE WHEN L4.title IS NOT NULL THEN L4.title ELSE '' END AS L4Tit, L5.id AS L5Id, CASE WHEN L5.title IS NOT NULL THEN L5.title ELSE '' END AS L5Tit
+		    FROM pg_location AS L1
+			LEFT JOIN pg_location AS L2 ON ((L1.file = L2.file) AND (L2.parent_id = L1.id))
+			LEFT JOIN pg_location AS L3 ON ((L1.file = L3.file) AND (L3.parent_id = L2.id))
+			LEFT JOIN pg_location AS L4 ON ((L1.file = L4.file) AND (L4.parent_id = L3.id))
+			LEFT JOIN pg_location AS L5 ON ((L1.file = L5.file) AND (L5.parent_id = L4.id))
+		    WHERE L1.parent_id IS NULL AND L1.file = " . $id_file . "
+		)AS DATA
+		WHERE locationID IS NOT NULL
+		";
+	if ($tokenOrigin === "PGTIME") {
+	    $QUERY_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file = ' . $id_file . ') AND (selectableFromPGTime = 1) AND (enabled = 1) AND (selectableAS IN (1,3,5,7,32)))';
+	} elseif ($tokenOrigin === "PGEMP") {
+	    $QUERY_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file = ' . $id_file . ') AND (selectableFromEmpPortal = 1) AND (enabled = 1) AND (selectableAS IN (1,3,5,7,32)))';
+	} elseif ($tokenOrigin === "GENERAL") {
+	    $QUERY_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file = ' . $id_file . ') AND (enabled = 1) AND (selectableAS IN (1,3,5,7,32)))';
+	}
+	$QUERY_INCIDENCIAS_ALL = 'SELECT id, name, enabled, selectableAS FROM st_types WHERE ((file = ' . $id_file . '))';
+	$QUERY_FESTIVOS = '
+		SELECT 
+			EMP.id AS emp_id, 
+			CASE WHEN CONT.specificHolidays = 1 THEN CONT.Holidays ELSE GEN.Holidays END AS Holidays, 
+			CASE WHEN CONT.specificHolidays = 1 THEN CONT.work_holidays ELSE GEN.work_holidays END AS work_holidays 
+		    FROM 
+			pg_employees AS EMP  
+			LEFT JOIN web_arx AS GEN ON (GEN.id = EMP.file) 
+			LEFT JOIN pg_contracts AS CONT ON ((EMP.file = CONT.file) AND (EMP.contract = CONT.id)) 
+		    WHERE (EMP.file=' . $id_file . ')' . ($employeeClause != "" ? " AND (EMP.id " . $employeeClause . ")": "") ;
+	if ($tokenOrigin === "PGTIME") {
+	    $QUERY_WORK_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file='.$id_file.') AND (workIncidence=1) AND (itype <> 1) AND (selectableFromPGTime = 1) AND (enabled = 1) AND (selectableAS IN (1,32)))';
+	} elseif ($tokenOrigin === "PGEMP") {
+	    $QUERY_WORK_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file='.$id_file.') AND (workIncidence=1) AND (itype <> 1) AND (selectableFromEmpPortal = 1) AND (enabled = 1) AND (selectableAS IN (1,32)))';
+	} elseif ($tokenOrigin === "GENERAL") {
+	    $QUERY_WORK_INCIDENCIAS = 'SELECT id, name, selectableAS FROM st_types WHERE ((file='.$id_file.') AND (workIncidence=1) AND (itype <> 1) AND (enabled = 1) AND (selectableAS IN (1,32)))';
+	}
+	switch ($nQuery) {
+		case "QUERY_EMPLEADOS":
+			$query = $QUERY_EMPLEADOS;
+			break;
+		case "QUERY_INCIDENCIAS":
+			$query = $QUERY_INCIDENCIAS;
+			break;
+		case "QUERY_INCIDENCIAS_TRABAJO": 
+			$query = $QUERY_WORK_INCIDENCIAS;
+			break;
+		case "QUERY_INCIDENCIAS_ALL":
+			$query = $QUERY_INCIDENCIAS_ALL;
+			break;
+		case "QUERY_SHIFTTYPES":
+			$query = $QUERY_SHIFTTYPES;
+			break;
+		case "QUERY_LOCATION":
+			$query = $QUERY_LOCATION;
+			break;
+		case "QUERY_SKILLS":
+			$query = $QUERY_SKILLS;
+			break;
+		case "QUERY_TIPOS_TT":
+			$query = $QUERY_TIPOS_TT;
+			break;
+		case "QUERY_TIMETABLE":
+			$query = $QUERY_TIMETABLE;
+			break;
+		case "QUERY_FESTIVOS":
+			$query = $QUERY_FESTIVOS;
+			break;
+		default:
+			echo "No es una consulta registrada: " . $nQuery;
+			break;
+	}
+
+	//Creamos la conexión con la función anterior
+	try {
+		//Ejecutamos la consulta
+		$stmt = $conexion->prepare($query);
+		$stmt->execute();
+		//Almacenamos los resultados en un array 
+		$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+		//print_r($data);
+		$jsonArray = json_encode($data);
+
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"ok",';
+		$jsontext .= '"result_str": "",';
+		$jsontext .= '"result_data": ' . $jsonArray;
+		$jsontext .= "}";
+
+		return $jsontext;
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "Error al ejecutar consulta: ' . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+}
+
+function getID($type,$token) {	    
+	global $conexion;
+	try {
+		$query = 'SELECT idUsuario, idEmpresa, idArea, idFile FROM pgtime_puestos_fijos AS puesto WHERE ((puesto.idFile IS NOT NULL) AND (puesto.idFile != -99) AND (puesto.token=:token))';
+		//Ejecutamos la consulta
+		$stmt = $conexion->prepare($query);
+		$stmt->bindValue(':token', $token, PDO::PARAM_STR);
+		$stmt->execute();
+		//Almacenamos el resultado en un array 
+		$data = $stmt->fetch();
+		if ($type === 'USUARIO') {
+			return $data["idUsuario"];
+		} else if ($type === 'EMPRESA') {
+			return $data["idEmpresa"];
+		} else if ($type === 'AREA') {
+			return $data["idArea"];
+		} else if ($type === 'FILE') {
+			return $data["idFile"];
+		} else {
+			return -99;
+		}
+	} catch (PDOException $ex) {
+		//echo 'Error al ejecutar consulta.' . PHP_EOL . 'Exception: ' . $ex->getMessage() . PHP_EOL;
+		return -99;
+	}
+}
+
+
+
+/** ************************************************************************ **/
+/**                FUNCIONES RELATIVAS AL PORTAL DEL EMPLEADO                **/
+/** ************************************************************************ **/
+
+/*********************************************************************************************
+** Función que comprueba las credenciales del empleado y realiza el logeo devolviendo un json con el resultado.
+** PARAMETROS:
+** $_POST['emailEmp']   		--> id de usuario
+** $_POST['passEmp']    		--> pass del usuario ya codificada (md5) Formato: md5("PGP" + password)
+** $_POST['device_name']		--> nombre del dispositivo
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+** 	USER_OR_PASS_NOT_VALID		--> Usuario o contraseña no validos.
+** 	ERROR_REGISTERING_USER		--> Error al registrar el usuario y dispositivo como puesto fijo
+**    USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND --> Error al recuperar informacion del usuario en base a su token recien generado
+**	EXPIRED_PASSWORD		--> Si el usuario tiene la contraseña caducada y debe cambiarla 
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function checkLoginEmp() {
+	global $conexion;
+
+/* Ejemplo de estructura:
+	{
+	"resultado": "ok|error|exception",  --> resultado de la operacion
+	"result_str": "",		    --> mensaje con error
+	"usuario":			    --> informacion del usuario devuelto
+	    {
+	    "code": 379,			--> Código de usuario
+	    "email": "jmanso@globales.es",	--> Email del usuario
+	    "loginToken": "asdasdasdasdasdad",	--> El token asignado en el login
+	    "companys": [			--> Listado de compañías en las que puede acceder
+		{
+		    "id": 104,			--> Id de la compañía
+		    "name": "Soluciones inf…",	--> Nombre de la compañía
+		    "areas": [			--> Lista de áreas seleccionables
+			{
+			    "id": 211,		--> Id del área
+			    "name": "Segovia",	--> Nombre del área
+			    "modAT":0|1,	--> 0 --> no está habilitado el módulo de presencia y absentismo (fichajes) | 1 --> habilitado el módulo de presencia y ABS (posible fichar)
+			    "files": [		--> Lista de planificaciones seleccionables
+				{
+				    "id":342,				--> Id de la planificación
+				    "name": "2017",			--> Nombre de la planificación
+				    "firstShiftDate": "2017-01-01",	--> Fecha de inicio de planificación
+				    "lastShiftDate": "2017-12-31",	--> Fecha de fin de planificación
+				    "takePhoto": 0|1,			--> si no se toma foto, 1 si se toma foto
+				    "saveRandomPhoto": 50,		--> probabilidad de guardar foto de 0 a 100
+				    "mantainLastNPhoto": 100,		--> numero de fotos a guardar, pasado el número se sobrescriben
+				    "keyboardSound": 0|1,		--> 1 si se usan sonidos de teclado o 0 si no.
+				    "accessSound":0|1,			--> 1 si se usan sonidos de acceso correcto o incorrecto, 0 si no.
+				    "cameraSound":0|1,			--> 1 si se usa sonido de obturador al hacer foto, 0 si no.
+				    "saveLocationPEmp": 0|1,		--> 1 si se debe tomar la ubicacion del usuario, 0 si no.
+ 				    "signingWithNFC": 0|1,		--> 1 si se puede usar tecnología NFC para fichar, 0 en caso contrario.
+				    "nextFileID": 486,			--> ID de la próxima planificación (si existe).
+				    "nextFirstShiftDate": "2018-01-01", --> Fecha de comienzo de la nueva planificación (solo si existe nextFileID).
+				    "nextLastShiftDate": "2018-12-31",	--> Fecha de fin de la nueva planificación (solo si existe nextFileID).
+				    "employees": [			--> Lista de empleados seleccionables (será muy raro que aquí exista más de uno, pero podría darse el caso)
+					{
+					    "id": 8,			    --> ID del empleado en la planificación
+					    "name": "Javier",		    --> Nombre del empleado
+					    "signingInEmpPortal": 0|1,	    --> 0--> el empleado NO puede fichar desde el portal | 1--> el empleado puede fichar desde el portal
+					    "showSigningsInEmpPortal": 0|1  --> 0--> el empleado NO puede ver sus fichajes desde el portal | 1--> el empleado puede ver sus fichajes desde el portal (SIN USO PARA TI)
+					}
+				    ]
+				}
+			    ]
+			}
+		    ]
+		}
+	    ]
+	} 
+    }
+ */
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["emailEmp"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailEmp";
+	}
+	if (empty($_POST["passEmp"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "passEmp";
+	}
+	if (empty($_POST["device_name"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "device_name";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+		
+	try {
+		//obtenemos el id del usuario, si es que es válido...
+		$sentencia = $conexion->prepare(
+				"SELECT PEMP.id, PEMP.mail 
+				 FROM fiw_employees AS PEMP
+				 WHERE PEMP.mail = :email AND PEMP.pass = :pass");
+
+		$sentencia->bindValue(':email', $_POST['emailEmp'], PDO::PARAM_STR);
+		$sentencia->bindValue(':pass',  $_POST['passEmp'],  PDO::PARAM_STR);
+
+		$sentencia->execute();
+		$emps = $sentencia->fetchAll();
+		$nemps = count($emps);
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nemps == 1) {
+			//el usuario y contraseña pareccen correctos, DEBEMOS comprobar si las credenciales han caducado o no.
+			if (checkExpiredCredentialsEmp(true, $_POST['emailEmp']) === true) {
+				//error credenciales expiradas
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "EXPIRED_PASSWORD"';
+				$jsontext .= "}";
+				return $jsontext;
+			}
+			
+			$emp = $emps[0];
+			$emp_code = $emp['id'];
+			$token = '';
+
+			//finalmente registramos el puesto fijo:
+			$resultRegister = registrarLoginEmpleado($emp_code, $_POST["device_name"]);
+			if ($resultRegister === 'ERROR_REGISTERING_USER') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_REGISTERING_USER"';
+				$jsontext .= "}";
+				return $jsontext;
+			} else {
+				//si no hay error al registrar usuario continuamos
+				$token = $resultRegister;
+			}
+
+			$empDevuelto = recuperarEmpleadoInterna($token);
+			if ($empDevuelto === 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+			} else {
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": "",';
+				$jsontext .= '"usuario": ' . $empDevuelto;
+			}
+		} else {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_OR_PASS_NOT_VALID"';
+		}
+		$jsontext .= "}";
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+ * Función que comprueba las credenciales de un empleado que ya está logeado en la aplicacion.
+ * 
+ * PARAMETROS:
+ * $_POST['emailEmp']	--> id de usuario
+ * $_POST['passEmp'] 	--> pass del usuario ya codificada (md5) Formato: md5("PGP" + password)
+ * $_POST['token']	--> token de la session que ya está abierta
+ * 
+ * DEVUELVE:
+ * Json con resultados ok, error, exception
+ * Formato:
+ * {
+ *	"resultado": "ok|error|exception",  --> resultado de la operacion
+ *	"result_str": "",		    --> mensaje con error
+ *	"usuario":			    --> informacion del usuario devuelto
+ *	    {
+ *	    "code": 379,			--> Código de usuario
+ *	    "email": "jmanso@globales.es",	--> Email del usuario
+ *	    "loginToken": "asdasdasdasdasdad",	--> El token asignado en el login
+ *	    "companys": [			--> Listado de compañías en las que puede acceder
+ *		{
+ *		    "id": 104,			--> Id de la compañía
+ *		    "name": "Soluciones inf…",	--> Nombre de la compañía
+ *		    "areas": [			--> Lista de áreas seleccionables
+ *			{
+ *			    "id": 211,		--> Id del área
+ *			    "name": "Segovia",	--> Nombre del área
+ *			    "modAT":0|1,	--> 0 --> no está habilitado el módulo de presencia y absentismo (fichajes) | 1 --> habilitado el módulo de presencia y ABS (posible fichar)
+ *			    "files": [		--> Lista de planificaciones seleccionables
+ *				{
+ *				    "id":342,				--> Id de la planificación
+ *				    "name": "2017",			--> Nombre de la planificación
+ *				    "firstShiftDate": "2017-01-01",	--> Fecha de inicio de planificación
+ *				    "lastShiftDate": "2017-12-31",	--> Fecha de fin de planificación
+ *				    "takePhoto": 0|1,			--> si no se toma foto, 1 si se toma foto
+ *				    "saveRandomPhoto": 50,		--> probabilidad de guardar foto de 0 a 100
+ *				    "mantainLastNPhoto": 100,		--> numero de fotos a guardar, pasado el número se sobrescriben
+ *				    "keyboardSound": 0|1,		--> 1 si se usan sonidos de teclado o 0 si no.
+ *				    "accessSound":0|1,			--> 1 si se usan sonidos de acceso correcto o incorrecto, 0 si no.
+ *				    "cameraSound":0|1,			--> 1 si se usa sonido de obturador al hacer foto, 0 si no.
+ *				    "saveLocationPEmp": 0|1,		--> 1 si se debe tomar la ubicacion del usuario, 0 si no.
+ *				    "signingWithNFC": 0|1,		--> 1 si se puede usar tecnología NFC para fichar, 0 en caso contrario.
+ *				    "nextFileID": 486,			--> ID de la próxima planificación (si existe).
+ *				    "nextFirstShiftDate": "2018-01-01", --> Fecha de comienzo de la nueva planificación (solo si existe nextFileID).
+ *				    "nextLastShiftDate": "2018-12-31",	--> Fecha de fin de la nueva planificación (solo si existe nextFileID).
+ *				    "employees": [			--> Lista de empleados seleccionables (será muy raro que aquí exista más de uno, pero podría darse el caso)
+ *					{
+ *					    "id": 8,			    --> ID del empleado en la planificación
+ *					    "name": "Javier",		    --> Nombre del empleado
+ *					    "signingInEmpPortal": 0|1,	    --> 0--> el empleado NO puede fichar desde el portal | 1--> el empleado puede fichar desde el portal
+ *					    "showSigningsInEmpPortal": 0|1  --> 0--> el empleado NO puede ver sus fichajes desde el portal | 1--> el empleado puede ver sus fichajes desde el portal (SIN USO PARA TI)
+ *					}
+ *				    ]
+ *				}
+ *			    ]
+ *			}
+ *		    ]
+ *		}
+ *	    ]
+ *	}
+ * }
+ *  
+ * Posibles valores para resultado error:
+ *  - TOKEN_USER_NOT_MATCH		    --> El token no existe o no encaja con el usuario logeado.
+ *  - UNLOCK_PASS_NOT_MATCH		    --> La contraseña o no encaja con la del usuario de la session.
+ *  - EXPIRED_PASSWORD			    --> Si el usuario tiene la contraseña caducada y debe cambiarla 
+ *  - USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND  --> Error al recuperar informacion del usuario en base a su token
+ *  - INCORRECT_PARAMETERS		    --> Alguno de los parametros de entrada es incorrecto o no se ha especificado.
+ * POsible valor para resultado expception:
+ * 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function checkPassAlreadyLoggedEmp() {
+	global $conexion;
+
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["emailEmp"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailEmp";
+	}
+	if (empty($_POST["passEmp"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "passEmp";
+	}
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+		
+	try {
+		//obtenemos el id del usuario, si es que es válido...
+		$sentencia = $conexion->prepare(
+				"SELECT token, mail, pass
+				 FROM fiw_logins_app AS LOGIN_APP
+				 INNER JOIN fiw_employees AS FIW_EMP ON (LOGIN_APP.idEmpleado = FIW_EMP.id)
+				 WHERE (LOGIN_APP.token = :token) AND (FIW_EMP.mail = :email)
+				 ORDER BY last_login DESC");
+		
+		$sentencia->bindValue(':token', $_POST['token'], PDO::PARAM_STR);
+		$sentencia->bindValue(':email', $_POST['emailEmp'], PDO::PARAM_STR);
+
+		$sentencia->execute();
+		$emps = $sentencia->fetchAll();
+		$nemps = count($emps);
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nemps != 1) {
+		    //mas de un login identico o no se ha encontrado match. error igualmente
+		    $jsontext .= '"error",';
+		    $jsontext .= '"result_str": "TOKEN_USER_NOT_MATCH"';
+		    $jsontext .= "}";
+		    return $jsontext;
+		}
+		
+		//el usuario y token existen y estan vinculados,
+		
+		$emp = $emps[0];
+		$emp_code = $emp['id'];
+		$emp_pass = $emp['pass'];
+		$token = $emp['token'];
+				
+		//comprobamos si la contraseña encaja
+		if (strtoupper($emp_pass) !== strtoupper($_POST['passEmp'])) { //se verifica en mayusculas porque es un hash da igual mayus que minus...
+		    //contraseña no valida
+		    $jsontext .= '"error",';
+		    $jsontext .= '"result_str": "UNLOCK_PASS_NOT_MATCH"';
+		    $jsontext .= "}";
+		    return $jsontext;
+		}
+		
+		//el usuario y contraseña son correctos y encajan con la session (token), DEBEMOS comprobar si las credenciales han caducado o no.
+		if (checkExpiredCredentialsEmp(true, $_POST['emailEmp']) === true) {
+			//error credenciales expiradas
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "EXPIRED_PASSWORD"';
+			$jsontext .= "}";
+			return $jsontext;
+		}
+		
+		//devolvemos datos del usuario
+		$empDevuelto = recuperarEmpleadoInterna($token);
+		if ($empDevuelto === 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+		} else {
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"usuario": ' . $empDevuelto;
+		}
+		
+		$jsontext .= "}";
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Función que cambia la contraseña de un empleado.
+** PARAMETROS:
+** $_POST['emailUser']   		--> email de empleado
+** $_POST['oldPassword']    		--> pass del empleado ya codificada (md5) Formato: md5("PGP" + password)
+** $_POST['plainNewPassword']    	--> nueva contraseña del empleado en plano
+** $_POST['plainNewPassword2']		--> repeticion de nueva contraseña del empleado en plano para evitar errores tipograficos.
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+**	INCORRECT_PARAMETERS		--> Parametros incorrectos
+** 	USER_OR_PASS_NOT_VALID		--> Usuario o contraseña no validos.
+**	NEW_PASSWORDS_NOT_MATCH		--> Las nuevas contraseñas no coinciden
+** 	PASSWORD_RECENTLY_USED		--> Nueva contraseña no cumple politica de historico de contraseñas.
+**	WEAK_PASSWORD_STRENGTH		--> Contraseña debil, no cumple los requistiso de complejidad (mayusculas, minusculas, numeros y al menos 8 caracteres)
+** 	ERROR_SAVING_TRY_AGAIN		--> Error al guardar la nueva contraseña ¿volver a intentar?
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function changeEmpPassword() {
+	global $conexion;
+	
+	//Validacion de parametros
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["emailUser"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "emailUser";
+	}
+	if (empty($_POST["oldPassword"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "oldPassword";
+	}
+	if (empty($_POST["plainNewPassword"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "plainNewPassword";
+	}	
+	if (!isset($_POST["plainNewPassword2"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "plainNewPassword2";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	//Fin Validación de parametros
+	
+	$emailUser = $_POST['emailUser'];
+	$oldPassword = $_POST['oldPassword'];
+	$plainNewPassword = $_POST['plainNewPassword'];
+	$plainNewPassword2 = $_POST['plainNewPassword2'];
+	
+	try {
+	    $sentencia = $conexion->prepare("SELECT id, mail FROM fiw_employees WHERE mail=:email AND pass=:password");
+	    $sentencia->bindValue(':email', $emailUser, PDO::PARAM_STR);
+	    $sentencia->bindValue(':password', $oldPassword, PDO::PARAM_STR);
+	    $sentencia->execute();
+
+	    $jsontext = '{';
+	    $jsontext .= '"resultado": ';
+
+	    if ($dat = $sentencia->fetch()) {
+		//el login es correcto,
+
+		$uppercase = preg_match('@[A-Z]@', $plainNewPassword);
+		$lowercase = preg_match('@[a-z]@', $plainNewPassword);
+		$number    = preg_match('@[0-9]@', $plainNewPassword);
+		if(!$uppercase || !$lowercase || !$number || strlen($plainNewPassword) < 8) {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "WEAK_PASSWORD_STRENGTH"';
+			$jsontext .= "}";
+		}else{
+		    if ($plainNewPassword == $plainNewPassword2){
+			//la doble valicacion de contraseña para evitar errores tipograficos es correcta.
+			$hashedNewPassword = hash('md5',"PGP".$plainNewPassword);
+
+			//validamos password no usada en historico
+			$numPassWordToSave = getNumEmpPassToSave($dat['id']);
+			if ($numPassWordToSave > 0) {
+			    $passUsedRecently = empPasswordNotUsedRecently($dat['id'], $hashedNewPassword);
+			} else {
+			    $passUsedRecently = false;
+			}
+
+			if ($passUsedRecently === false) {
+			    $sentencia = $conexion->prepare("UPDATE fiw_employees SET 
+								eula=1,
+								pass = :newPassword, 
+								lastPassChangeDate=NOW() 
+							    WHERE mail=:email AND id=:user_id");
+			    $sentencia->bindValue(':email', $emailUser, PDO::PARAM_STR);
+			    $sentencia->bindValue(':newPassword', $hashedNewPassword, PDO::PARAM_STR);
+			    $sentencia->bindValue(':user_id', intval($dat['id']), PDO::PARAM_INT);
+			    if ($sentencia->execute()) {
+				//damos el password por actualizado
+				$passwordSave = 0;
+
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": ""';
+				$jsontext .= "}";
+
+				//gestionamos el historico de passwords
+				if ($numPassWordToSave > 0) {
+				    try {
+					addEmpPasswordToHist($dat['id'], $hashedNewPassword);
+					deleteOldEntrysEmpPassHist($dat['id'],$numPassWordToSave);
+				    } catch (PDOException $ex) {
+					//nada, esto no afecta a que lo haya cambiado.
+				    }
+				}
+			    } else {
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "ERROR_SAVING_TRY_AGAIN"';
+				$jsontext .= "}";
+			    }
+			} else {
+			    $jsontext .= '"error",';
+			    $jsontext .= '"result_str": "PASSWORD_RECENTLY_USED"';
+			    $jsontext .= "}";
+			}
+		    }else{
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "NEW_PASSWORDS_NOT_MATCH"';
+			$jsontext .= "}";
+		    }
+		}
+	    }else{
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "USER_OR_PASS_NOT_VALID"';
+		$jsontext .= "}";
+	    }
+	} catch (PDOException $ex) {
+	    $jsontext = '{';
+	    $jsontext .= '"resultado": "exception",';
+	    $jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+	    $jsontext .= "}";
+	}
+	return $jsontext;
+}
+/*********************************************************************************************
+** Funcion que registra un usuario de un puesto fijo en el sistema
+** Parametros
+** $idEmpleado      		--> id del empleado logeado.
+** $device_name    		--> nombre del dispositivo (meramente indicativo).
+** DEVUELVE:
+** 32HexDigitAsToken            --> si se ha registrado correctamente.
+** 'ERROR_REGISTERING_USER'     --> Si ocurre un error al registrar el  usuario y dispositivo
+*********************************************************************************************/
+function registrarLoginEmpleado($idEmpleado, $device_name) {
+	global $conexion;
+	try {
+		//buscamos una clave unica que no este siendo usada actualmente
+		$secureReTrys= 30;
+		$i = 0;
+		do {
+			//en lugar de usar:
+			//$token = md5(uniqid(mt_rand(), true));
+			//uso:
+			$token = bin2hex(openssl_random_pseudo_bytes(16)); 
+			//debido a que  de esta forma, la clave es mas segura criptograficamente.
+			$sentencia = $conexion->prepare('SELECT token FROM fiw_logins_app WHERE token = :token');
+			$sentencia->bindValue(':token', $token, PDO::PARAM_STR);
+			$sentencia->execute();
+			$i++;
+		} while (($rows = $sentencia->fetch(PDO::FETCH_ASSOC)) && ($i <= $secureReTrys));
+		if ($i > $secureReTrys) {
+		    return 'ERROR_REGISTERING_USER';
+		} else {
+		    $sentencia = $conexion->prepare('INSERT INTO fiw_logins_app(token,token_time,idEmpleado,device_name,last_login) VALUES (:token, NOW(), :idEmpleado, :device_name, NOW())');
+
+		    $sentencia->bindValue(':token',		$token,		PDO::PARAM_STR);
+		    $sentencia->bindValue(':idEmpleado', 	$idEmpleado, 	PDO::PARAM_INT);
+		    $sentencia->bindValue(':device_name', 	$device_name, 	PDO::PARAM_STR);
+
+		    //insertar los datos
+		    $sentencia->execute();
+		    return $token;
+		}
+	} catch (PDOException $ex) {
+		// echo 'Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		return 'ERROR_REGISTERING_USER';
+	}
+}
+/*********************************************************************************************
+** Función que comprueba si un usuario del portal del empleado (dado su email) tiene las 
+ * credenciales caducadas o no. No se comprueba si son validas, si no si estan caducadas. 
+ * Devuelve un json con el resultado.
+** PARAMETROS:
+** $_POST['emailEmp']   		--> id de usuario
+** DEVUELVE:
+** Json con resultados ok, error, exception
+** Posibles valores para resultado error:
+**	INCORRECT_PARAMETERS		--> no se han especificados los parametros necesarios. 
+**	EXPIRED_PASSWORD		--> Si el usuario tiene la contraseña caducada y debe cambiarla 
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function checkExpiredCredentialsEmp($interno = false, $user = "") {
+	global $conexion;
+	
+	if ($interno === false) {
+		//Validacion de parametros
+		$jsontext = '';
+
+		$error_parametros = '';
+		if (empty($_POST["emailEmp"])) {
+			if ($error_parametros !== '') { $error_parametros .= ', ';}
+			$error_parametros .= "emailEmp";
+		}
+		if ($error_parametros !== '') {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+			$jsontext .= "}";
+			return $jsontext;
+		}
+		//Fin Validación de parametros
+	}
+	
+	try{
+		$sentencia = $conexion->prepare(
+			"SELECT EMP.id, EMP.mail, 
+			    CASE WHEN IFNULL(MIN(NULLIF(PORTAL_CNF.expirePassAfter, 0)), 0) = 0 
+			    THEN 0 /* no ha expirado */ 
+			    ELSE 
+				/* comprobamos que hoy sea menor que la fecha de expiracion */ 
+				CASE WHEN DATE_ADD(EMP.lastPassChangeDate, INTERVAL IFNULL(MIN(NULLIF(PORTAL_CNF.expirePassAfter, 0)), 0) DAY) >= NOW() 
+				THEN 0 /* no ha expirado aun */ 
+				ELSE 1 /* expirada */ 
+				END 
+			    END AS expiredPassword, 
+			    DATE_ADD(EMP.lastPassChangeDate, INTERVAL IFNULL(MIN(NULLIF(PORTAL_CNF.expirePassAfter, 0)), 0) DAY) AS expiredDate
+			FROM fiw_employees AS EMP 
+				    LEFT JOIN pg_employees AS PG_EMP ON (EMP.id = PG_EMP.code) 
+			    LEFT JOIN st_portal_cfg AS PORTAL_CNF ON (PORTAL_CNF.file = PG_EMP.file) 
+			WHERE EMP.mail = :user 
+			GROUP BY EMP.id, EMP.mail");
+
+		if ($interno === true) {
+		    $sentencia->bindValue(':user', $user, PDO::PARAM_STR);
+		} else {
+		    $sentencia->bindValue(':user', $_POST['emailEmp'], PDO::PARAM_STR);
+		}
+		$sentencia->execute();
+		$expired = false;
+		if ($dat = $sentencia->fetch()){
+		    if ($dat['expiredPassword'] == "1") {
+			$expired = true;
+		    }
+		}
+		if ($interno === true) {
+			return $expired;
+		} else {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+
+			if ($expired === true) {
+				//contraseña expirada
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "EXPIRED_PASSWORD"';
+			} else {
+				//contraseña no expirada
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": ""';
+			}
+			$jsontext .= "}";
+			return $jsontext;
+		}
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+}
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos del empleado a partir del token
+** Parametros
+** $token"  				--> token identificador de la session.
+** DEVUELVE:
+** JSON con el objeto			--> Si la consulta tiene exito y se encuentra el usuario
+** USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND	--> Si la consulta no devuelve un resultado unico (0 o >1 = error)
+**
+** Throws:
+** PDOException 			--> si ocurre un error al realizar la consulta de busqueda de usuario.
+*********************************************************************************************/
+function recuperarEmpleadoInterna($token) {
+	global $conexion;
+	
+	//consulta y generacion de resultado...
+	$sentencia = $conexion->prepare(
+		"SELECT PEMP.id, PEMP.mail, loginApp.token 
+		 FROM fiw_employees AS PEMP INNER JOIN fiw_logins_app AS loginApp ON PEMP.id = loginApp.idEmpleado
+		 WHERE loginApp.token = :token");
+	$sentencia->execute(array(':token' => $token));
+	
+	$emps = $sentencia->fetchAll();
+	$nemps = count($emps);
+	$jsontext = '';
+	if ($nemps == 1) {
+		$emp = $emps[0];
+		$emp_code = $emp['id'];
+		$emp_Email = $emp['mail'];
+		$jsontext .= '{';
+		$jsontext .= '"code":'         . $emp_code		. ',';
+		$jsontext .= '"email":"'       . $emp_Email		. '",';
+		$jsontext .= '"loginToken":"'  . $emp['token']		. '",';
+		$jsontext .= '"companys": [';
+		//si es valido, buscamos las compañias asociadas:
+		try {
+			$sentencia = $conexion->prepare( "SELECT web_company.id AS companyID, web_company.name AS companyName, GROUP_CONCAT( DISTINCT pg_employees.email SEPARATOR '#|#') AS empEmail
+			FROM web_company
+				INNER JOIN web_area_com ON web_company.id = web_area_com.id_company
+				INNER JOIN web_arx_area ON web_area_com.id_area = web_arx_area.id_area
+				INNER JOIN web_area ON web_area_com.id_area = web_area.id
+				INNER JOIN web_arx ON web_arx.id = web_arx_area.id_arx
+				INNER JOIN pg_employees ON web_arx_area.id_arx = pg_employees.file
+			WHERE (pg_employees.code = :code) AND (web_arx.parent IS NULL) AND (web_area.modEP = 1)
+			GROUP BY web_company.id"); //Al menos una de las areas de la empresa debe tener habilitado el modEP
+			$sentencia->execute(array(':code' => $emp_code));
+			$companys = $sentencia->fetchAll();
+			$ncompanys = count($companys);
+			if($ncompanys > 0) {
+				//recorremos las compañias
+				//recuperamos las compañias para escoger cual:
+				foreach($companys as $company) {
+					$arrayEmails = array_values(array_filter(explode("#|#", $company['empEmail'])));
+					if ( in_array($emp_Email, $arrayEmails, true) === true) {
+						$comp_id = $company['companyID'];
+						$comp_name = $company['companyName'];
+						$jsontext .= '{"id": '		. $comp_id 	. ','.
+							     '"name": "' 	. $comp_name . '",';
+						$jsontext .= '"areas": [';
+						try {
+							//para cada compañia pueden existir varias areas:
+							$sentencia = $conexion->prepare( "SELECT web_area.id AS areaID, web_area.name AS areaName, GROUP_CONCAT( DISTINCT pg_employees.email SEPARATOR '#|#') AS empEmail, 
+								    web_area.modAT AS modAT 
+								FROM web_area
+									INNER JOIN web_area_com ON web_area.id = web_area_com.id_area
+									INNER JOIN web_arx_area ON web_area_com.id_area = web_arx_area.id_area
+									INNER JOIN web_arx ON web_arx.id = web_arx_area.id_arx
+									INNER JOIN pg_employees ON web_arx_area.id_arx = pg_employees.file
+								WHERE pg_employees.code = :code AND web_arx.parent IS NULL AND web_area.modEP = 1 AND web_area_com.id_company = :idCompany
+								GROUP BY web_area.id");
+							$sentencia->execute(array(':code' => $emp_code, ':idCompany' => $comp_id));
+							$areas = $sentencia->fetchAll();
+							$nareas = count($areas);
+							if($nareas > 0) {
+								//recorremos las areas
+								foreach($areas as $area) {
+									$arrayEmails = array_values(array_filter(explode("#|#", $area['empEmail'])));
+									if ( in_array($emp_Email, $arrayEmails, true) === true) {
+										$area_id = $area['areaID'];
+										$area_name = $area['areaName'];
+										$area_modAT = $area['modAT'];
+										$jsontext .= '{"id": '		. $area_id 	. ','.
+											     '"name": "'	. $area_name 	. '",'.
+											     '"modAT": '	. $area_modAT 	. ',';
+										$jsontext .= '"files": ['; //comienza array files										 
+										try {
+											//para cada compañia y area pueden existir varios files (planificaciones):
+											$sentencia = $conexion->prepare("SELECT 
+												    web_arx.id AS fileID, web_arx.name AS fileName, GROUP_CONCAT( DISTINCT pg_employees.email SEPARATOR '#|#') AS empEmail, web_arx.firstShiftDate, web_arx.lastShiftDate, 
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.takePhoto END AS takePhoto,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.saveRandomPhoto END AS saveRandomPhoto,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.mantainLastNPhoto END AS mantainLastNPhoto,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.keyboardSound END AS keyboardSound,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.accessSound END AS accessSound,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.cameraSound END AS cameraSound,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.saveLocationPEmp END AS saveLocationPEmp,
+												    CASE WHEN ti_config.file IS NULL THEN 0 ELSE ti_config.signingWithNFC END AS signingWithNFC,
+												    PN.arx_nextPlanId AS nextFileID, N_ARX.firstShiftDate AS nextFirstShiftDate, N_ARX.lastShiftDate AS nextLastShiftDate
+												FROM web_arx
+													INNER JOIN web_arx_area ON web_arx.id = web_arx_area.id_arx
+													INNER JOIN pg_employees ON web_arx_area.id_arx = pg_employees.file
+													LEFT JOIN ti_config ON ti_config.file = web_arx.id
+													LEFT JOIN arx_prev_next AS PN ON (PN.arx_id = web_arx.id)
+													LEFT JOIN web_arx AS N_ARX ON (N_ARX.id = PN.arx_nextPlanId) AND (PN.arx_nextPlanId IS NOT NULL)
+												WHERE pg_employees.code = :code AND web_arx.parent IS NULL AND web_arx_area.id_area = :idArea
+												GROUP BY web_arx.id");
+											$sentencia->execute(array(':code' => $emp_code, ':idArea' => $area_id));
+											$files = $sentencia->fetchAll();
+											$nfiles = count($files);
+
+											if($nfiles > 0) {
+												//recorremos las areas
+												foreach($files as $file) {
+													$arrayEmails = array_values(array_filter(explode("#|#", $file['empEmail'])));
+													if ( in_array($emp_Email, $arrayEmails, true) === true) {
+														$file_id = $file['fileID'];
+														$file_name = $file['fileName'];
+														$file_sdate = $file['firstShiftDate'];
+														$file_edate = $file['lastShiftDate'];
+														$jsontext .= '{"id": ' 			. $file_id 	. ','.
+															      '"name": "' 		. $file_name 	. '",'.
+															      '"firstShiftDate": "' 	. $file_sdate 	. '",'.
+															      '"lastShiftDate": "' 	. $file_edate 	. '",'.
+															      '"takePhoto": '		. $file['takePhoto'] 	. ','.
+															      '"saveRandomPhoto": ' 	. $file['saveRandomPhoto'] 	. ','.
+															      '"mantainLastNPhoto": ' 	. $file['mantainLastNPhoto'] 	. ','.
+															      '"keyboardSound": ' 	. $file['keyboardSound'] 	. ','.
+															      '"accessSound": ' 	. $file['accessSound'] 	. ','.
+															      '"cameraSound": ' 	. $file['cameraSound'] 	. ','.
+															      '"saveLocationPEmp": '	. $file['saveLocationPEmp'] 	. ','.
+															      '"signingWithNFC": '	. $file['signingWithNFC'] . ',';
+														//Si existe informacion de la proxima planificacion, la devolvemos
+														if (isset($file['nextFileID'])) {
+															$jsontext .=	'"nextFileID": '	    . $file['nextFileID']	    . ','.
+																	'"nextFirstShiftDate": "'   . $file['nextFirstShiftDate']   . '",'.
+																	'"nextLastShiftDate": "'    . $file['nextLastShiftDate']    . '",';
+														}
+														$jsontext .= '"employees": ['; //comienza array employees
+														try {
+															//para cada compañia y area y files (planificaciones) el usuario puede estar vionculado a varios empleados:
+															$sentencia = $conexion->prepare("SELECT pg_employees.id AS employee, pg_employees.name, pg_employees.email As empEmail, 
+																			    CASE WHEN (ti_employee.signingInEmpPortal IS NULL) THEN 0 ELSE ti_employee.signingInEmpPortal END AS signingInEmpPortal,
+																			    CASE WHEN (ti_employee.showSigningsInEmpPortal IS NULL) THEN 0 ELSE ti_employee.showSigningsInEmpPortal END AS showSigningsInEmpPortal
+																			 FROM web_arx
+																				INNER JOIN pg_employees ON web_arx.id = pg_employees.file
+																				LEFT JOIN ti_employee ON pg_employees.id = ti_employee.id_emp AND pg_employees.file = ti_employee.file
+																			 WHERE pg_employees.code = :code AND web_arx.parent IS NULL AND web_arx.id = :idFile");
+															$sentencia->execute(array(':code' => $emp_code, ':idFile' => $file_id));
+															$fileEmps = $sentencia->fetchAll();
+															$nFileEmps = count($fileEmps);
+															if($nFileEmps > 0) {
+																foreach($fileEmps as $fileEmp) {
+																	if ($emp_Email == $fileEmp['empEmail']) {
+																		$fileEmp_id = $fileEmp['employee'];
+																		$fileEmp_name = $fileEmp['name'];
+																		$fileEmp_signInEmpP = $fileEmp['signingInEmpPortal'];
+																		$fileEmp_showSigningsInEmpPortal = $fileEmp['showSigningsInEmpPortal'];
+																		$jsontext .= '{"id": ' 			. $fileEmp_id 	. ','.
+																			    '"name": "' 		. $fileEmp_name 	. '",'.
+																			    '"signingInEmpPortal": '	. $fileEmp_signInEmpP . ','.
+																			    '"showSigningsInEmpPortal": ' . $fileEmp_showSigningsInEmpPortal . '},';
+																	}
+																}
+																$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array employees...
+															}
+														} catch (PDOException $fe) {
+															//nada
+														} 
+														$jsontext .= "]"; //end array emp
+														$jsontext .= '},';// end file object
+													}
+												}
+												$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array files...
+											}
+
+										} catch (PDOException $fe) {
+											//nada
+										} 
+										$jsontext .= "]"; //end array files
+										$jsontext .= '},';// end area object
+									}
+								}
+								$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array areas...
+							}
+						} catch (PDOException $ae) {
+							//nada
+						} 
+						$jsontext .= "]"; //en array areaas
+						$jsontext .= '},'; //end company object
+					}
+				}
+				$jsontext = substr_replace($jsontext, '', -1); // para eliminar la coma sobrante, array compañias...
+			}
+		} catch (PDOException $ce) {
+			//nada
+		}
+		$jsontext .= "]"; //en array companies
+		$jsontext .= "}"; //end user object
+		
+		//finalmente actualizamos la fecha de ultimo login
+		updateLastLoginEmp($token);
+	} else {
+		return 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND';
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que configura un login de empleado con la compañia, area, etc seleccionada
+** Parametros
+** $_POST["token"]          --> token identificador de la session.
+** $_POST["idEmpresa"]      --> id de la empresa seleccionada.
+** $_POST["idArea"]         --> id del area de la empresa seleccionada.
+** $_POST["idFile"]         --> id del file del area y empresa seleccionada.
+** $_POST["idEmpleadoPlan"] --> id del empleado seleccionado.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** error INCORRECT_PARAMETERS               --> si falta algun parametro.
+** error NO_ROW_UPDATED                     --> si la consulta no actualiza nada.
+** exception ERROR_UPDATING_FIXED_STATION   --> si ocurre un error al grabar los cambios.
+**
+*********************************************************************************************/
+function configurarEmpleado() {
+	global $conexion;
+	
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	if (empty($_POST["idEmpresa"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idEmpresa";
+	}
+	if (empty($_POST["idArea"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idArea";
+	}
+	if (empty($_POST["idFile"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idFile";
+	}
+	if (empty($_POST["idEmpleadoPlan"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "idEmpleadoPlan";
+	}
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$sentencia = $conexion->prepare('UPDATE fiw_logins_app '.
+		                                'SET '.
+							'idEmpresa = :idEmpresa, '.
+							'idArea = :idArea, '.
+							'idFile = :idFile, '.
+							'idEmpleadoPlan = :idEmpleado, '. 
+							'last_login = NOW() '.
+						'WHERE token = :token');
+		
+		$sentencia->bindValue(':idEmpresa',     $_POST["idEmpresa"],     PDO::PARAM_INT);
+		$sentencia->bindValue(':idArea',        $_POST["idArea"],        PDO::PARAM_INT);
+		$sentencia->bindValue(':idFile',        $_POST["idFile"],        PDO::PARAM_INT);
+		$sentencia->bindValue(':idEmpleado', 	$_POST["idEmpleadoPlan"],PDO::PARAM_STR);
+		$sentencia->bindValue(':token', 	$_POST["token"],	 PDO::PARAM_STR);
+		$sentencia->execute();
+		if ($sentencia->rowCount() === 1) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": ""';
+			$jsontext .= "}";
+		} else {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "NO_ROW_UPDATED"';
+			$jsontext .= "}";
+		}
+	} catch (PDOException $ex) {
+		// echo 'Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "ERROR_UPDATING_FIXED_STATION"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que obtiene la configuracion de un empleado
+** Parametros
+** $_POST["token"]				--> token identificador de la session.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** error USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND	--> si la consulta no devuelve un resultao unico para el token
+** error INCORRECT_PARAMETERS			--> si falta algun parametro.
+** exception si ocurre algun error al ejecutar la consulta.
+*********************************************************************************************/
+function recuperarConfiguracionEmpleado() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		//consulta y generacion de resultado...
+		$sentencia = $conexion->prepare(
+			"SELECT idEmpleado, token, idEmpresa, idArea, idFile, idEmpleadoPlan ".
+			"FROM fiw_logins_app ".
+			"WHERE token = :token");
+
+		$sentencia->bindValue(':token', $_POST['token'], PDO::PARAM_STR);
+
+		$sentencia->execute();
+		$config = $sentencia->fetchAll();	
+		$nconfig = count($config);
+		
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		if ($nconfig == 1) {
+			$conf = $config[0];
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"config": ';
+			$jsontext .= '{';
+			$jsontext .= '"empleadoCode":'      . $conf['idEmpleado']	. ',';
+			$jsontext .= '"token":"'	    . $conf['token']	. '",';
+			$jsontext .= '"empresaID":"'        . $conf['idEmpresa']	. '",';
+			$jsontext .= '"areaID":"'	    . $conf['idArea']		. '",';
+			$jsontext .= '"fileID":"'	    . $conf['idFile']		. '",';
+			$jsontext .= '"empleadoPlanID":"'   . $conf['idEmpleadoPlan']	. '"';
+			$jsontext .= '}';
+		} else {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos del empleado a partir del token
+** Parametros
+** $_POST["token"]          				--> token identificador de la session.
+** DEVUELVE:
+** Json con el objeto 
+** Formato:
+** {
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"usuario":			    --> informacion del usuario devuelto
+**	    {
+**	    "code": 379,			--> Código de usuario
+**	    "email": "jmanso@globales.es",	--> Email del usuario
+**	    "loginToken": "asdasdasdasdasdad",	--> El token asignado en el login
+**	    "companys": [			--> Listado de compañías en las que puede acceder
+**		{
+**		    "id": 104,			--> Id de la compañía
+**		    "name": "Soluciones inf…",	--> Nombre de la compañía
+**		    "areas": [			--> Lista de áreas seleccionables
+**			{
+**			    "id": 211,		--> Id del área
+**			    "name": "Segovia",	--> Nombre del área
+**			    "modAT":0|1,	--> 0 --> no está habilitado el módulo de presencia y absentismo (fichajes) | 1 --> habilitado el módulo de presencia y ABS (posible fichar)
+**			    "files": [		--> Lista de planificaciones seleccionables
+**				{
+**				    "id":342,			    --> Id de la planificación
+**				    "name": "2017",		    --> Nombre de la planificación
+**				    "firstShiftDate": "2017-01-01", --> Fecha de inicio de planificación
+**				    "lastShiftDate": "2017-12-31",  --> Fecha de fin de planificación
+**				    "takePhoto": 0|1,		    --> si no se toma foto, 1 si se toma foto
+**				    "saveRandomPhoto": 50,	    --> probabilidad de guardar foto de 0 a 100
+**				    "mantainLastNPhoto": 100,	    --> numero de fotos a guardar, pasado el número se sobrescriben
+**				    "keyboardSound": 0|1,	    --> 1 si se usan sonidos de teclado o 0 si no.
+**				    "accessSound":0|1,		    --> 1 si se usan sonidos de acceso correcto o incorrecto, 0 si no.
+**				    "cameraSound":0|1,		    --> 1 si se usa sonido de obturador al hacer foto, 0 si no.
+**				    "saveLocationPEmp": 0|1,	    --> 1 si se debe tomar la ubicacion del usuario, 0 si no.
+**				    "signingWithNFC": 0|1,	    --> 1 si se puede usar tecnología NFC para fichar, 0 en caso contrario.
+**				    "nextFileID": 486,			--> ID de la próxima planificación (si existe).
+**				    "nextFirstShiftDate": "2018-01-01", --> Fecha de comienzo de la nueva planificación (solo si existe nextFileID).
+**				    "nextLastShiftDate": "2018-12-31",	--> Fecha de fin de la nueva planificación (solo si existe nextFileID).
+**				    "employees": [		    --> Lista de empleados seleccionables (será muy raro que aquí exista más de uno, pero podría darse el caso)
+**					{
+**					    "id": 8,			    --> ID del empleado en la planificación
+**					    "name": "Javier",		    --> Nombre del empleado
+**					    "signingInEmpPortal": 0|1,	    --> 0--> el empleado NO puede fichar desde el portal | 1--> el empleado puede fichar desde el portal
+**					    "showSigningsInEmpPortal": 0|1  --> 0--> el empleado NO puede ver sus fichajes desde el portal | 1--> el empleado puede ver sus fichajes desde el portal (SIN USO PARA TI)
+**					}
+**				    ]
+**				}
+**			    ]
+**			}
+**		    ]
+**		}
+**	    ]
+**	} 
+**  }
+
+** Posibles valores para resultado error:
+**    USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND --> Error al recuperar informacion del usuario en base a su token recien generado
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta del usuario
+*********************************************************************************************/
+function recuperarDatosEmpleado() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$empDevuelto = recuperarEmpleadoInterna($_POST["token"]);
+		if ($empDevuelto === 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+		} else {
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"usuario": ' . $empDevuelto;
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+/*********************************************************************************************
+** Funcion que deslogea un empleado del portal
+** Parametros
+** $_POST["token"]          --> token identificador de la session.
+** DEVUELVE:
+** JSON con el resultado del update ok, error, exception
+** ok "" 
+** exception ERROR_LOGOUT   --> si ocurre un error al deslogear.
+** exception INCORRECT_PARAMETERS --> si falta algun parametro.
+**
+*********************************************************************************************/
+function logoutEmployee() {
+	global $conexion;
+	
+	$jsontext = '';
+	
+	$error_parametros = '';
+	
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$sentencia = $conexion->prepare('DELETE FROM fiw_logins_app WHERE token = :token');
+		$sentencia->bindValue(':token', $_POST["token"], PDO::PARAM_STR);
+		$sentencia->execute();
+
+		//da igual que consigamos borrar algo o no, si no lo podemos borrar es porque no existe, asi que ok.
+		//if ($sentencia->rowCount() === 1) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": ';
+			$jsontext .= '"ok",';
+			$jsontext .= '"result_str": ""';
+			$jsontext .= "}";
+		//}
+	} catch (PDOException $ex) {
+		//echo 'Error al borrar usuario.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . ' <br />' . PHP_EOL;
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"exception",';
+		$jsontext .= '"result_str": "ERROR_LOGOUT"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que actualiza la fecha de ultimo login del usuario del portal
+** Parametros
+** $token       --> token identificador de la session.
+** DEVUELVE:
+** 
+*********************************************************************************************/
+function updateLastLoginEmp($token) {
+	global $conexion;
+	try {
+		$sentencia = $conexion->prepare('UPDATE fiw_logins_app '.
+		                                'SET last_login = NOW() '.
+						'WHERE token = :token');
+		
+		$sentencia->bindValue(':token', $token, PDO::PARAM_STR);
+		$sentencia->execute();
+		if ($sentencia->rowCount() === 1) {
+			//modificacion correcta
+		}
+	} catch (PDOException $ex) {
+	}
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos de la url y parametros necesdarios para poder
+** acceder al portal del empleado con un login ya realizado en la app (token)
+** Parametros
+** $token"  		--> token identificador de la session.
+** DEVUELVE:
+** JSON con el objeto	--> Si la consulta tiene exito y se encuentra el usuario
+** Formato:
+** { 
+**	"resultado": "ok|error|exception", --> resultado de la operacion
+**	"result_str": "", --> mensaje con error
+**	"url": "http...." --> url solicitada
+**	"params" : [    --> Parametros que se deben incluir en la llamada de la url
+**	    { 
+**		"paramType": "post",	    --> Tipo de paramero (get|post)
+**		"paramName": "tk",	    --> Nombre del parametro
+**		"paramValue": "token"	    --> Valor del parametro
+**	    }
+**	    ...
+**	]
+**	
+** resultado error: INCORRECT_PARAMETERS		    --> si falta algun parametro.
+** resultado error: USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND    --> Si no se encuentra un login asociado al token
+** resultado error: UNKNOWN_HTTP_HOST			    --> Si no se reconoce el HOST desde el que se procesa la solicitud (servidores de pgplanning, inf globales, desarrollo)
+** resultado exception:  --> si ocurre un error al realizar la consulta de busqueda de usuario.
+*********************************************************************************************/
+function obtenerURLPortalEmpleadoLogeado() {
+	global $conexion;
+	
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		
+		$baseURL = obtenerURLPortalEmpleado($_SERVER['HTTP_HOST']);
+		if ($baseURL !== "") {
+			$sentencia = $conexion->prepare(
+				'SELECT token 
+				FROM fiw_logins_app 
+				WHERE token = :token'
+			); //si, solicitamos el mismo valor del parametro, para comprobar que existe.
+			$sentencia->bindValue(':token', $_POST['token'], PDO::PARAM_STR);
+
+			$sentencia->execute();
+			if ($config = $sentencia->fetchAll()) {
+				//hemos encontrado un usuario logeado con este token
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": "",';
+				$jsontext .= '"url": "' . $baseURL . 'loginByToken.php",';
+				$jsontext .= '"params": [';
+				    $jsontext .= '{';
+					$jsontext .= '"paramType": "post",';
+					$jsontext .= '"paramName": "tk",';
+					$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+				    $jsontext .= '}';
+				$jsontext .= ']';
+			} else {
+				//error, no hay token vinculado
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+			}
+		} else {
+			//error, HTTP_HOST desconocido
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "UNKNOWN_HTTP_HOST"';
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos de las secciones del portal del empleado
+ * a las ue tiene acceso un determinado empleado dado su token. Se devuelve los datos como
+ * el nombre, url, iconos, si esta habilitado o no, el tipo de seccion (nativa o webview) y
+ * los parametros necesdarios para poder acceder al portal del empleado con un login 
+ * ya realizado en la app (token)
+ * 
+** Parametros
+** $token"  		--> token identificador de la session.
+** DEVUELVE:
+** JSON con el objeto	--> Si la consulta tiene exito y se encuentra el usuario
+** Formato:
+** { 
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"secciones": [			    --> listado de secciones
+**	    {
+**		"name": "Fichaje",		    --> Nombre de seccion
+**		"type": "native",		    --> Tipo de seccion (native|webview)
+**		"url": "'.$baseURL.'sign.php",	    --> Url de la version webview
+**		"enabled": true,		    --> true si el empleado puede usar esta seccion, false si no.
+**		"visible": true,		    --> true si la seccion es visible, false si no. Relacionado con 
+**							Enabled, no tiene sentido enabled = true, visible = false. 
+**							Pero si, enabled=false y visible=true y el resto de combinaciones.
+**		"iconFont": "FontAwesome",	    --> Nombre de la fuente usada para los iconos
+**		"iconName": "fa-user-o",	    --> Nombre que da la fuente al icono
+**		"iconUnicode": "[&#xf2c0;]",	    --> String representacion del caracter unicode que representa vinculado al icono
+**		"params": [			    --> Listado de parametros necesario para el acceso al webview con la url indicada.
+**		    {
+**			"paramType": "post",	    --> Tipo de paramero (get|post)
+**			"paramName": "tk",	    --> Nombre del parametro
+**			"paramValue": "token"	    --> Valor del parametro
+**		    }
+**		    , ...
+**		]
+**	    }
+**	    , ...
+**	]
+**  }
+**	
+** resultado error: INCORRECT_PARAMETERS		    --> si falta algun parametro.
+** resultado error: USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND    --> Si no se encuentra un login asociado al token
+** resultado error: UNKNOWN_HTTP_HOST			    --> Si no se reconoce el HOST desde el que se procesa la solicitud (servidores de pgplanning, inf globales, desarrollo)
+** resultado exception:  --> si ocurre un error al realizar la consulta de busqueda de usuario.
+*********************************************************************************************/
+function obtenerSeccionesPortalEmpleado() {
+	global $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	try {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		
+		$baseURL = obtenerURLPortalEmpleado($_SERVER['HTTP_HOST']);
+		if ($baseURL !== "") {
+			$sentencia = $conexion->prepare(
+				"SELECT 
+				    APP_LOGIN.token, APP_LOGIN.idFile,
+				    AREA.modAT,
+				    CASE WHEN (TI_EMP.signingInEmpPortal IS NULL) THEN 0 ELSE TI_EMP.signingInEmpPortal END AS signingInEmpPortal,
+				    CASE WHEN (TI_EMP.showSigningsInEmpPortal IS NULL) THEN 0 ELSE TI_EMP.showSigningsInEmpPortal END AS showSigningsInEmpPortal,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.request END AS request,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.req_holidays END AS req_holidays,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.req_shift_changes END AS req_shift_changes,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.req_incidences END AS req_incidences,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.allowSeeOtherEmpSchedule END AS allowSeeOtherEmpSchedule,
+				    CASE WHEN (CFG.file IS NULL) THEN 0 ELSE CFG.summary_show END AS summary_show 
+				FROM 
+				    fiw_logins_app AS APP_LOGIN
+				    INNER JOIN web_arx AS ARX ON (APP_LOGIN.idFile = ARX.id)
+				    INNER JOIN web_area AS AREA ON (APP_LOGIN.idArea = AREA.id)
+				    INNER JOIN pg_employees AS EMP ON ((EMP.file = APP_LOGIN.idFile) AND (EMP.id = APP_LOGIN.idEmpleadoPlan))
+				    LEFT JOIN ti_employee AS TI_EMP ON ((TI_EMP.file = APP_LOGIN.idFile) AND (TI_EMP.id_emp = EMP.id))
+				    LEFT JOIN st_portal_cfg AS CFG ON (APP_LOGIN.idFile = CFG.file)
+				WHERE (APP_LOGIN.token = :token)");
+
+			$sentencia->bindValue(':token', $_POST['token'], PDO::PARAM_STR);
+			$sentencia->execute();
+			if ($dat = $sentencia->fetch()) {
+				//obtenemos que tiene permitido y que no el empleado
+				$signingInEmpPortal = (($dat['modAT'] == "1") && ($dat['signingInEmpPortal'] == "1")) ? true : false;
+				$request = (
+						($dat['request'] == "1") && 
+						(
+						    ($dat['req_holidays'] == "1") || 
+						    ($dat['req_shift_changes'] == "1") || 
+						    ($dat['req_incidences'] == "1")
+						)
+					    ) ? true : false;
+				$allowSeeOtherEmpSchedule = ($dat['allowSeeOtherEmpSchedule'] == "1" ? true : false);
+				$summary_show = ($dat['summary_show'] == "1" ? true : false);
+				
+				$jsontext .= '"ok",';
+				$jsontext .= '"result_str": "",';
+				$jsontext .= '"secciones": [';
+				    //seccion 1, fichajes (nativa)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Fichaje",';
+					$jsontext .= '"type": "native",';
+					$jsontext .= '"url": "'.$baseURL.'sign.php",';
+					$jsontext .= '"enabled": '.(($signingInEmpPortal === true) ? 'true' : 'false').',';
+					$jsontext .= '"visible": true,'; //seccion siempre visible, aunque no esté habilitada
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-user-o",';
+					$jsontext .= '"iconUnicode": "&#xf2c0;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "post",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '}'; // fin seccion 1, fichajes (nativa)
+				    $jsontext .= ',';
+				    
+				    //seccion 2, peticiones (webview)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Solicitudes",';
+					$jsontext .= '"type": "webview",';
+					$jsontext .= '"url": "'.$baseURL.'request.php",';
+					$jsontext .= '"enabled": '. (($request === true) ? 'true' : 'false') .',';
+					$jsontext .= '"visible": '. (($request === true) ? 'true' : 'false') .','; //seccion solo visible si está habilitada
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-pencil-square-o",';
+					$jsontext .= '"iconUnicode": "&#xf044;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "get",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '}'; // fin seccion 2, peticiones (webview)
+				    $jsontext .= ',';
+				    
+				    //seccion 3, cuadrante (webview)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Cuadrante",';
+					$jsontext .= '"type": "webview",';
+					$jsontext .= '"url": "'.$baseURL.'schedule.php",';
+					$jsontext .= '"enabled": true,';
+					$jsontext .= '"visible": true,'; //seccion siempre visible
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-calendar",';
+					$jsontext .= '"iconUnicode": "&#xf073;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "get",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '}'; // fin seccion 3, cuadrante (webview)
+				    $jsontext .= ',';
+				    
+				    //seccion 4, Noticias (webview)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Tablon de anuncios",';
+					$jsontext .= '"type": "webview",';
+					$jsontext .= '"url": "'.$baseURL.'news.php",';
+					$jsontext .= '"enabled": true,';
+					$jsontext .= '"visible": true,'; //seccion siempre visible
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-rss",';
+					$jsontext .= '"iconUnicode": "&#xf09e;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "get",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '}'; // fin seccion 4, Noticias (webview)
+				    $jsontext .= ',';
+				    
+				    //seccion 5, resumen (webview)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Resumen",';
+					$jsontext .= '"type": "webview",';
+					$jsontext .= '"url": "'.$baseURL.'summary.php",';
+					$jsontext .= '"enabled": '. (($summary_show === true) ? 'true' : 'false') .',';
+					$jsontext .= '"visible": '. (($summary_show === true) ? 'true' : 'false') .','; //seccion solo visible si está habilitada
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-book",';
+					$jsontext .= '"iconUnicode": "&#xf02d;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "get",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '},'; // fin seccion 5, resumen (webview)
+				    
+				    //seccion 6, cuadrante de todos los empleados (webview)
+				    $jsontext .= '{';
+					$jsontext .= '"name": "Cuadrante compañeros",';
+					$jsontext .= '"type": "webview",';
+					$jsontext .= '"url": "'.$baseURL.'scheduleAllEmp.php",';
+					$jsontext .= '"enabled": '. (($allowSeeOtherEmpSchedule === true) ? 'true' : 'false') .',';
+					$jsontext .= '"visible": '. (($allowSeeOtherEmpSchedule === true) ? 'true' : 'false') .','; //seccion solo visible si está habilitada
+					$jsontext .= '"iconFont": "FontAwesome",';
+					$jsontext .= '"iconName": "fa-users",';
+					$jsontext .= '"iconUnicode": "&#xf0c0;",';
+					$jsontext .= '"params": [';
+					    $jsontext .= '{';
+						$jsontext .= '"paramType": "get",';
+						$jsontext .= '"paramName": "tk",';
+						$jsontext .= '"paramValue": "'. $_POST['token'] . '"';
+					    $jsontext .= '}';
+					$jsontext .= ']';
+				    $jsontext .= '}'; // fin seccion 6, cuadrante de todos los empleados (webview)
+				$jsontext .= ']';
+			} else {
+				//error, no hay token vinculado
+				$jsontext .= '"error",';
+				$jsontext .= '"result_str": "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND"';
+			}
+		} else {
+			//error, HTTP_HOST desconocido
+			$jsontext .= '"error",';
+			$jsontext .= '"result_str": "UNKNOWN_HTTP_HOST"';
+		}
+		$jsontext .= '}';
+	} catch (PDOException $ex) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": "exception",';
+		$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+		$jsontext .= "}";
+	}
+	return $jsontext;
+}
+function obtenerURLPortalEmpleado($host) {
+	global $conexion;
+	
+	$baseURL = "";
+	
+	if ($host === "pgtime.pgplanning.es") {
+		$baseURL = "https://portalempleado.pgplanning.es/";
+	} elseif ($host === 'demopgtime.pgplanning.es') {
+		$baseURL = "https://demoportal.pgplanning.es/";
+	} elseif ($host === "localhost") {
+		$baseURL = "http://localhost/pgplanning-portalempleado/";
+	} elseif ($host === "192.168.69.10") {
+		if (strpos($_SERVER['SCRIPT_NAME'], "demopgtime.pgplanning.es") !== false) {
+		    $baseURL = "https://192.168.69.10/demoportal.pgplanning.es/";
+		} else {
+		    $baseURL = "https://192.168.69.10/portalempleado.pgplanning.es/";
+		}
+	} else {
+		//error
+	}
+	
+	return $baseURL;
+}
+
+function getID_PEmp($type,$token) {	    
+	global $conexion;
+	try {
+		
+		$query = 'SELECT idEmpleado, idEmpresa, idArea, idFile, idEmpleadoPlan FROM fiw_logins_app WHERE ((idFile IS NOT NULL) AND (token = :token))';
+		//Ejecutamos la consulta
+		$stmt = $conexion->prepare($query);
+		$stmt->bindValue(':token', $token, PDO::PARAM_STR);
+		$stmt->execute();
+		//Almacenamos el resultado en un array 
+		$data = $stmt->fetch();
+		if ($type === 'USUARIO') {
+			return $data["idEmpleado"];
+		} else if ($type === 'EMPRESA') {
+			return $data["idEmpresa"];
+		} else if ($type === 'AREA') {
+			return $data["idArea"];
+		} else if ($type === 'FILE') {
+			return $data["idFile"];
+		} else if ($type === 'EMPLEADO') {
+			return $data["idEmpleadoPlan"];
+		} else {
+			return -99;
+		}
+	} catch (PDOException $ex) {
+		//echo 'Error al ejecutar consulta.' . PHP_EOL . 'Exception: ' . $ex->getMessage() . PHP_EOL;
+		return -99;
+	}
+}
+
+/*********************************************************************************************
+** Funcion que devuelve un objeto json con los datos de la operacion de fichaje (grabando el fichaje o no dependiendo del parametro)
+** Es util para determinar si el proximo fichaje sera una entrada o una salida, etc.
+** Parametros
+** $_POST["token"]          --> token identificador de la session.
+** $_POST['incidencia']	    --> id de la incidencia seleccionada por el usuario, 0 si no se selecciona ninguna (opcional, default: 0)
+** $_POST['lang']	    --> lenguage a usar para devolver cadenas traducidas, cadena tipo es_ES ó en_US, (Opcional, default: es_ES)
+** $_POST["latitud"]	    --> latitud de coordenada (formato WGS84) //(opcional)
+** $_POST["longitud"]	    --> longitud de coordenada (formato WGS84) //(opcional)
+** $_POST["accuracy"]	    --> margen de error devuelto junto con las coordenadas //(opcional)
+** $_POST["responseUser"]   --> código de respuesta en caso de haber necesitado realizar pregunta (opcional si no se realiza pregunta o no se inserta el fichaje (simulado)).
+** DEVUELVE:
+** Json con resultados ok, error, exception,
+** Formato:
+**  {
+**	"resultado": "ok|error|exception",  --> resultado de la operacion
+**	"result_str": "",		    --> mensaje con error
+**	"result_data":			    --> informacion del fichaje si se produjera
+**	    {
+**		"response": "ok",			--> resultado de la operacion //'ok' --> procesado correctamente, 'ko' --> procesado con errores
+**		"error": "error"|repeat|noDay|noEmp",	--> codigo de error si response es 'ko' --> 
+**							    Valores: 
+**								error --> Si se produce error en consultas
+**								repeat --> Si el fichaje no se puede generar por considerarse repetido (<1min desde ultimo fichaje)
+**							    	noDay --> Si el fichaje se produce en un dia sin turno
+**								noEmp --> Si no se consigue obtener el id del empleado del fichaje.
+**		"shift": 12,				--> id del tipo de turno al que estaría vinculado el fichaje.
+**		"inOrOut": 0|1,	--> Tipo de fichaje:  0 --> Entrada,  1 --> Salida
+**		"emp": 8,				--> id del empleado del fichaje
+**		"date": "YYYY-MM-DD",			--> fecha del fichaje
+**		"time": "HH:MM:SS",			--> hora del fichaje
+**		"incidence": 0,				--> 0 para no incidencia, o el id de incidencia del fichaje
+**		"greetingMsg" : "msg",			--> (solo en grabar fichaje), devuelve una cadena traducida con el mensaje de entrada a mostrar (hola, buenos dias, buenas noches, etc)
+**		"buttonText" : "btnText",		--> (solo en ficahje simulado), devuelve una cadena traducida con el texto que debe tener el boton de fichar .
+**		"askQuestion" : {			--> (solo en fichaje simulado con inOrOut = 0). Es un objeto que define la pergunta que hay que realizar al usuario y bajo que circustancias hay que realizarla.
+**		    "question_str": "¿Finaliza tambien su jornada laboral?",	    --> Texto traducido a idioma seleccionado de la pregunta que se le debe realizar al empleado
+**		    "condition_to_ask": {					    --> Condicionante para realizar o NO esta pregunta. Si no existiera este atributo, se realizaria siempre (Por ahora todas las preguntas tienen condicionantes)
+**			"field": "incidence",					    --> Nombre del campo de la condición, por ahora solo puede tener como valor "incidence", que indica el código de incidencia seleccionada por el usuario en el fichaje.
+**			"operator":"IN",					    --> Operador de la condición, por ahora solo puede tomar valor "IN" que indica que el campo del condicionante debe estar en un listado de valores.
+**			"values": [0,2]						    --> Listado de valores que tiene que tomar el campo del condicionante para que se realice la pregunta. Si este listado incluye el 0 significa tambien se realiza si no se selecciona ninguna incidencia en el fichaje, el resto indica los IDs de las incidencias en las que se pregunta.
+**		    },
+**		    "responses": [						    --> array con el listado de respuestas posibles a la pregunta. (Numero de elementos variable, por ahora, entre 2 y 3)
+**			{
+**			    "text": "<b>SI</b>, finalizar jornada también",	    --> Texto traducido a idioma seleccionado de la respuesta que mostrar al usuario (Puede contener etiquetado HTML básico).
+**			    "name": "responseUser",				    --> Nombre del parámetro que se usará para devolver la respuesta del usuario cuando se seleccione esta respuesta. (De momento, es un parametro fijo, llamado "responseUser".
+**			    "value": 2						    --> Valor del parametro cuando se seleccione esta respuesta.
+**			},
+**			{
+**			    "text": "<b>NO</b>, finalizar solo incidencia",
+**			    "name": "responseUser", 
+**			    "value": 1
+**			}
+**		    ]
+**		}
+**	    }
+** }
+** Posibles valores para resultado error:
+**	INCORRECT_PARAMETERS[paramName1, paramName2]	--> Parametros incorrectos con el listado 
+**							    de los parametros (nombre del parametros) 
+**							    que no estan definidos.
+** 	INVALID_TOKEN_OR_NOT_CONFIGURED			--> El token no se ha encontrado o no es válido (no se ha configurado).
+** POsible valor para resultado expception:
+** 	Mensaje con detalle de excepcion si ocurreo algun error al ejecutar consulta
+*********************************************************************************************/
+function validar_acceso_usuario_pemp($insertSign = true) {
+	global $langDirPGEMP, $conexion;
+	
+	//validacion de parametros
+	$error_parametros = '';
+	if (empty($_POST["token"])) {
+		if ($error_parametros !== '') { $error_parametros .= ', ';}
+		$error_parametros .= "token";
+	}
+	
+	if ($error_parametros !== '') {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INCORRECT_PARAMETERS['. $error_parametros .']"';
+		$jsontext .= "}";
+		return $jsontext;
+	}
+	
+	//PARA CADENA DE IDIOMAS
+	if (isset($_POST['lang'])) {    
+	    $getLang = $_POST['lang'];
+	    if (strlen($getLang) == 2) {
+		$getLang = strtolower($getLang) . '_' . strtoupper($getLang);
+	    }
+	} else {
+	    $getLang = 'es_ES'; //por defecto si no se especifica
+	}
+	
+	putenv("LC_ALL=$getLang");
+	setlocale(LC_ALL, $getLang.'.utf8', $getLang.'.UTF-8', $getLang);
+	textdomain("messages");
+	bindtextdomain("messages", $langDirPGEMP);
+	bind_textdomain_codeset('messages', 'UTF-8');
+	//PARA CADENA DE IDIOMAS
+	
+	$id_file = getID_PEmp('FILE',$_POST["token"]);
+	$id_emp = getID_PEmp('EMPLEADO',$_POST["token"]);
+	if (($id_file === -99) || ($id_emp === -99)) {
+		$jsontext = '{';
+		$jsontext .= '"resultado": ';
+		$jsontext .= '"error",';
+		$jsontext .= '"result_str": "INVALID_TOKEN_OR_NOT_CONFIGURED"';
+		$jsontext .= "}";
+		return $jsontext;
+	} else {
+		try {
+			$latitud = NULL;
+			$longitud = NULL;
+			$accuracy = NULL;
+			if (!empty($_POST["latitud"])) {
+				$latitud = $_POST["latitud"];
+			}
+			if (!empty($_POST["longitud"])) {
+				$longitud = $_POST["longitud"];
+			}
+			if (!empty($_POST["accuracy"])) {
+				$accuracy = $_POST["accuracy"];
+			}
+			$responseUser = ((!empty($_POST['responseUser'])) ? intval($_POST['responseUser']) : 0 ); //recogemos respuesta del usuario (si hay alguna), sinó, se toma por defecto 0.
+			$signData = sign($id_file, $id_emp, (isset($_POST['incidencia']) ? $_POST['incidencia'] : NULL), $insertSign, $latitud, $longitud, $accuracy, $responseUser);
+			if (isset($signData['inOrOut'])) {
+			    if ($insertSign === true) {
+				if ($signData['inOrOut']==0) {
+				    $signData['greetingMsg'] = getSaludo($signData['time']);
+				} else {
+				    $signData['greetingMsg'] = _("Good bye");
+				}
+			    } else {
+				//modo simulacion para obtener si es entrada o salida...
+				if (($signData['response'] == "ok") || 
+				    (($signData['response'] == "ko") && ($signData['error'] != "repeat"))){
+					    
+				    if ($signData['response'] == "ok") {
+					if ($signData['inOrOut']==0) {
+					    //comprobamos si la posible incidencia abierta y que ha sido devuelta era una incidencia de trabajo.
+					    $isWorkIncidence = false; //si no está definida, tampoco es una incidencia de trabajo.
+					    $lastSignIncidence = isset($signData['lastSign_incidence']) ? $signData['lastSign_incidence'] : 0;
+					    $showQuestion = isset($signData['showQuestion']) ? $signData['showQuestion']: 0;
+					    if ($lastSignIncidence !== 0) { //esta definida lastSign_incidence y no es 0.
+						//comprobamos si es una incidencia de trabajo
+						try {
+						    $sentencia = $conexion->prepare("SELECT id FROM st_types WHERE (file=:file) AND (id=:id) AND ((workIncidence=1) AND ((selectableAS NOT IN (1,32)) || (itype <> 1)))");
+						    $sentencia->bindValue(':file', $id_file, PDO::PARAM_STR);
+						    $sentencia->bindValue(':id', $lastSignIncidence, PDO::PARAM_STR);
+						    $sentencia->execute();
+						    if ($dat = $sentencia->fetch()) {
+							//es una incidencia de trabajo
+							$isWorkIncidence = true;
+						    }
+						} catch (PDOException $ex) {
+							$isWorkIncidence = false;
+						}
+					    }
+					    if ( ($isWorkIncidence === true) && // es una incidencia de trabajo
+						 (($showQuestion != 0) || ($showQuestion != 4)) 
+						){
+						$signData['buttonText'] = _("Finish Incidence");
+					    }else{
+						$signData['buttonText'] = _("In");
+					    }
+					    //obtenemos posibles respuestas a realizar en base a los parametros obtenidos
+					    $questionsJSON = getQuestionForSigning($showQuestion, $lastSignIncidence, $_POST["token"]);
+					    if ($questionsJSON != "") { //si hay que hacer pregunta, o hay que hacerla bajo ciertas circustancias, devolvemos elemento AskQuestion
+						$signData['askQuestion'] = json_decode($questionsJSON, true);
+					    }
+					} else {
+					    //salida
+					    $signData['buttonText'] = _("Out");
+					}
+				    } else {
+					//no se sabe
+					$signData['buttonText'] = _("Sign");
+				    }
+				}
+			    }
+			}
+			//quito las variables lastSign_incidence y showQuestion ya que no las necesitará la APP.
+			if (isset($signData['lastSign_incidence'])) { unset($signData['lastSign_incidence']); }
+			if (isset($signData['showQuestion'])) { unset($signData['showQuestion']); }
+			$subJsontext = json_encode($signData);
+
+			$jsontext = '{';
+			$jsontext .= '"resultado": "ok",';
+			$jsontext .= '"result_str": "",';
+			$jsontext .= '"result_data": ' . $subJsontext;
+			$jsontext .= "}";
+		} catch (PDOException $ex) {
+			$jsontext = '{';
+			$jsontext .= '"resultado": "exception",';
+			$jsontext .= '"result_str": ' . '"Error al ejecutar consulta.' . ' <br />' . PHP_EOL . ' Exception: ' . $ex->getMessage() . '"';
+			$jsontext .= "}";
+		}
+	}
+	return $jsontext;
+}
+function getQuestionForSigning($showQuestion, $lastSignIncidence, $token) {
+	$jsontext = "";
+	
+	$workIncArray = array();
+	if (($showQuestion == 2) || ($showQuestion == 3)) {
+	    $paramsQuery = array();
+	    $paramsQuery["token"] = $token;
+	    $paramsQuery["tokenOrigin"] = "PGEMP";
+	    $paramsQuery['nQuery'] = "QUERY_INCIDENCIAS_TRABAJO";
+	    $wincResponse = getJsonArraySQL($paramsQuery);
+	    $wincResponseArray = json_decode($wincResponse, true);
+	    if ($wincResponseArray['resultado'] == 'ok') {
+		foreach ($wincResponseArray['result_data'] AS $winc) {
+		    $workIncArray[] = $winc['id'];
+		}
+	    }
+	}
+	
+	//si no se dan estas condiciones, no hay pregunta, devolvemos el valor inicial de $jsontext
+	if ($showQuestion == 1) {
+		// Si existe una salida anterior con una incidencia de trabajo
+		//  y el nuevo fichaje de entrada NO tiene incidencia o ha marcado la misma que en la salida
+		// Mostrar dialogo para preguntar si cierra incidencia o incidencia y jornada laboral
+		//CONDICION: ((incidenceSelected == 0) || (incidenceSelected == $lastSignIncidence))
+		$jsontext = '{';
+		    $jsontext .= '"question_str": "'._("Have you finish the workday too?").'",';
+		    $jsontext .= '"condition_to_ask": {';
+			$jsontext .= '"field": "incidence",';
+			$jsontext .= '"operator":"IN",';
+			$jsontext .= '"values": [0'.(($lastSignIncidence != 0) ? ",".$lastSignIncidence : "").']';
+			$jsontext .= '},';
+		    $jsontext .= '"responses": [';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("<b>YES</b>, close workday too").'", ';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 2' ;
+			$jsontext .= '},';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("<b>NO</b>, finish incidence only").'",';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 1' ;
+			$jsontext .= '}';
+		    $jsontext .= ']';
+		$jsontext .= "}";
+	}else if (($showQuestion == 4) && ($lastSignIncidence != 0)) { //solo si existe incidencia anterior, sinó, no hay pregunta.
+		// Si existe una salida anterior con una incidencia de trabajo
+		// y en el nuevo fichaje de entrada ha marcado la misma que en la salida
+		// Mostrar dialogo para preguntar si cierra incidencia o incidencia y jornada laboral
+		//CONDICION: (incidenceSelected == $lastSignIncidence)
+		$jsontext = '{';
+		    $jsontext .= '"question_str": "'._("Have you finish the workday too?").'",';
+		    $jsontext .= '"condition_to_ask": {';
+			$jsontext .= '"field": "incidence",';
+			$jsontext .= '"operator":"IN",';
+			$jsontext .= '"values": ['.$lastSignIncidence.']';
+			$jsontext .= '},';
+		    $jsontext .= '"responses": [';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("<b>YES</b>, close workday too").'", ';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 2' ;
+			$jsontext .= '},';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("<b>NO</b>, finish incidence only").'",';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 1' ;
+			$jsontext .= '}';
+		    $jsontext .= ']';
+		$jsontext .= "}"; 
+	}else if (($showQuestion == 2) && (count($workIncArray) > 0)) {
+		// Es 1er fichaje. Si el empleado marca una incidencia de trabajo => preguntar si finaliza la incidencia o comienza la jornada laboral y la incidencia
+		//CONDICION: ($.inArray(incidenceSelected, workingIncidences) != -1)
+		    $jsontext = '{';
+			$jsontext .= '"question_str": "'._("Are you starting / resuming your workday?").'",';
+			$jsontext .= '"condition_to_ask": {';
+			    $jsontext .= '"field": "incidence",';
+			    $jsontext .= '"operator":"IN",';
+			    $jsontext .= '"values": ['.implode(',', $workIncArray).']';
+			    $jsontext .= '},';
+			$jsontext .= '"responses": [';
+			    $jsontext .= '{';
+				$jsontext .= '"text":"'._("<b>YES</b>, with this incidence").'", ';
+				$jsontext .= '"name": "responseUser", ';
+				$jsontext .= '"value": 3' ;
+			    $jsontext .= '},';
+			    $jsontext .= '{';
+				$jsontext .= '"text":"'._("<b>NO</b>, finish the incidence").'",';
+				$jsontext .= '"name": "responseUser", ';
+				$jsontext .= '"value": 1' ;
+			    $jsontext .= '}';
+			$jsontext .= ']';
+		    $jsontext .= "}"; 
+	}else if (($showQuestion == 3) && (count($workIncArray) > 0)) {
+	    // Este caso se puede dar porque el empleado puede no marcar la incidencia en la salida, si no que la marque al finalizar la incidencia.
+	    // Si el ultimo fichaje es una salida sin incidencia.
+	    // Si el empleado marca una incidencia de trabajo => preguntar:
+	    //      - si finaliza la incidencia
+	    //      - finaliza la incidencia y la jornada laboral
+	    //      - comienza la jornada laboral y la incidencia
+	    //CONDICION: (workingIncidences !== undefined) && (workingIncidences.length > 0) && ($.inArray(incidenceSelected, workingIncidences) != -1)
+	    $jsontext = '{';
+		    $jsontext .= '"question_str": "'._("Select the action you want to do").'",';
+		    $jsontext .= '"condition_to_ask": {';
+			$jsontext .= '"field": "incidence",';
+			$jsontext .= '"operator":"IN",';
+			$jsontext .= '"values": ['.implode(',', $workIncArray).']';
+			$jsontext .= '},';
+		    $jsontext .= '"responses": [';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("Close incidence").'", ';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 1' ;
+			$jsontext .= '},';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("Finish incidence and workday").'",';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 2' ;
+			$jsontext .= '},';
+			$jsontext .= '{';
+			    $jsontext .= '"text":"'._("Start / Resume workday with incidence").'",';
+			    $jsontext .= '"name": "responseUser", ';
+			    $jsontext .= '"value": 3' ;
+			$jsontext .= '}';
+		    $jsontext .= ']';
+		$jsontext .= "}"; 
+	}
+	
+	return $jsontext;
+}
+
+/***********************************************************************
+ * HELP FUNCTIONS
+ ********************************************************************* */
+function getNumAdminPassToSave($user_id) {
+	global $conexion;
+	
+	$numPassToSave = 0;
+
+	//comprobamos si debemos guardar password en historico para politica contraseñas y cuantas contraseñas
+	$sentencia = $conexion->prepare("SELECT USERS.id, MAX(COMP.avoidNPass) AS saveNPassHist, USERS.superUser
+				FROM web_users AS USERS
+				LEFT JOIN permisos_efectivos_company AS PERM ON (USERS.id = PERM.id_user)
+				LEFT JOIN web_company AS COMP ON (PERM.id_company = COMP.id)
+				WHERE USERS.id = :user_id 
+				GROUP BY USERS.id, USERS.superUser");
+	$sentencia->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+	if ($dat = $sentencia->fetch()) {
+	    if ($dat['superUser'] != "1") {
+		$numPassToSave = intval($dat['saveNPassHist']);
+	    }
+	}
+		
+	return $numPassToSave;
+}
+function addAdminPasswordToHist($user_id, $newPassword) {
+	global $conexion;
+    
+	$nextHistID = 1;
+
+	//añadimos password al historico
+	$sentencia = $conexion->prepare("SELECT MAX(idPassword) AS nextIDPass FROM web_users_pass_hist WHERE user_id=:user_id");
+	$sentencia->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+	if ($dat = $sentencia->fetch()) {
+	    $nextHistID = $dat['nextIDPass'] + 1;
+	}
+
+	$sentencia = $conexion->prepare("INSERT INTO web_users_pass_hist(user_id, idPassword, password, creationDate) "
+					. "VALUES (:user_id, :hist_id, :newPass, NOW())");
+	$sentencia->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+	$sentencia->bindValue(':hist_id', $nextHistID, PDO::PARAM_INT);
+	$sentencia->bindValue(':newPass', $newPassword, PDO::PARAM_STR);
+	$sentencia->execute();
+}
+function deleteOldEntrysAdminPassHist($user_id, $numPassWordToSave) {
+	global $conexion;
+	
+	$sentencia = $conexion->prepare(
+		"DELETE FROM web_users_pass_hist 
+		 WHERE user_id = :user_id AND idPassword NOT IN (
+			SELECT idPassword FROM (
+				SELECT idPassword
+				FROM web_users_pass_hist
+				WHERE user_id = :user_id
+				ORDER BY idPassword DESC
+				LIMIT ".$numPassWordToSave."
+			) AS NOT_DELETE
+		)");
+	$sentencia->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+}
+function adminPasswordNotUsedRecently($user_id, $newPassword) {
+    global $conexion;
+    
+    $usedRecently = false;
+    $sentencia = $conexion->prepare("SELECT idPassword FROM web_users_pass_hist WHERE user_id=:user_id AND password = :newPass");
+    $sentencia->bindValue(':user_id', $user_id, PDO::PARAM_STR);
+    $sentencia->bindValue(':newPass', $newPassword, PDO::PARAM_STR);
+    $sentencia->execute();
+    if ($dat = $sentencia->fetch()) {
+	$usedRecently = true;
+    }
+    
+    return $usedRecently;
+}
+function getNumEmpPassToSave($user_id) {
+	global $conexion;
+	
+	$numPassToSave = 0;
+
+	//comprobamos si debemos guardar password en historico para politica contraseñas y cuantas contraseñas
+	$sentencia = $conexion->prepare("SELECT EMP.id, MAX(PORTAL_CNF.avoidNPass) AS saveNPassHist
+		FROM fiw_employees AS EMP
+			LEFT JOIN pg_employees AS PG_EMP ON (EMP.id = PG_EMP.code)
+			LEFT JOIN st_portal_cfg AS PORTAL_CNF ON (PORTAL_CNF.file = PG_EMP.file)
+		WHERE EMP.id = :emp_id
+		GROUP BY EMP.id");
+	$sentencia->bindValue(':emp_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+	if ($dat = $sentencia->fetch()) {
+		$numPassToSave = intval($dat['saveNPassHist']);
+	}
+	
+	return $numPassToSave;
+}
+function empPasswordNotUsedRecently($user_id, $newPassword) {
+	global $conexion;
+	
+    $usedRecently = false;
+    $sentencia = $conexion->prepare("SELECT idPassword FROM fiw_employees_pass_hist WHERE employee_id=:emp_id AND password = :newPass");
+    $sentencia->bindValue(':emp_id', $user_id, PDO::PARAM_STR);
+    $sentencia->bindValue(':newPass', $newPassword, PDO::PARAM_STR);
+    $sentencia->execute();
+    if ($dat = $sentencia->fetch()) {
+	$usedRecently = true;
+    }
+    
+    return $usedRecently;
+}
+function addEmpPasswordToHist($user_id, $newPassword) {
+	global $conexion;
+	
+	$nextHistID = 1;
+
+	//añadimos password al historico
+	$sentencia = $conexion->prepare("SELECT MAX(idPassword) AS nextIDPass FROM fiw_employees_pass_hist WHERE employee_id=:emp_id");
+	$sentencia->bindValue(':emp_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+	if ($dat = $sentencia->fetch()) {
+	    $nextHistID = $dat['nextIDPass'] + 1;
+	}
+
+	$sentencia = $conexion->prepare("INSERT INTO fiw_employees_pass_hist(employee_id, idPassword, password, creationDate) "
+					. "VALUES (:emp_id, :hist_id, :newPass, NOW())");
+	$sentencia->bindValue(':emp_id', $user_id, PDO::PARAM_STR);
+	$sentencia->bindValue(':hist_id', $nextHistID, PDO::PARAM_INT);
+	$sentencia->bindValue(':newPass', $newPassword, PDO::PARAM_STR);
+	$sentencia->execute();
+}
+function deleteOldEntrysEmpPassHist($user_id, $numPassWordToSave) {
+	global $conexion;
+	
+	$sentencia = $conexion->prepare(
+		"DELETE FROM fiw_employees_pass_hist 
+		 WHERE employee_id = :emp_id AND idPassword NOT IN (
+			SELECT idPassword FROM (
+				SELECT idPassword
+				FROM fiw_employees_pass_hist
+				WHERE employee_id = :emp_id
+				ORDER BY idPassword DESC
+				LIMIT ".$numPassWordToSave."
+			) AS NOT_DELETE
+		)");
+	$sentencia->bindValue(':emp_id', $user_id, PDO::PARAM_STR);
+	$sentencia->execute();
+}
+
+/**************************************************************************************************************/
+/*  Seleccion de coordenadas (puntos) que están dentro de una circunferencia de centro P(lat/lon) y radio R   */
+/** Funcion sin probar
+/**************************************************************************************************************/
+function getFichajesEnCircunferencia($puntoLat, $puntoLon, $radio) {
+	global $conexion;
+
+	//	Info:https://www.movable-type.co.uk/scripts/latlong-db.html
+	//
+	//para el cálculo usamos la formula de la ley de cosenos de la trigonometria esferica (http://www.movable-type.co.uk/scripts/latlong.html#cosine-law):
+	//Ley Coseno: 	d = acos( sin(f1)*sin(f2) + cos(f1)* cos(f2) * cos(?2- ?1) ) · R
+	//donde:: 	f = latitud, ? = longitd
+  	//R = radio de la tierra en km
+  	//d = distancia entre los puntos
+	//Finalmente la formula queda asi:
+  	//d = acos( sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1) ) * R
+	
+	$R = 6371;  // Radio de la tierra en Kilometros
+
+	//Debido a que la cantidad de puntos es muy alta, realizar una consulta que verifique cuantos de esos puntos estan dentro del circulo con esta formula puede
+	//ser muy ineficiente, vamos a intentar simplificarlo generando un rectangulo en el que se deben encontrar los puntos que pasen la validación mas fina.
+	//Esto lo conseguimos Dividiendo el radio de la circunferencia delimitadora entre el radio de la tierra $rad/$R. Lo que nos da una distancia angular 
+	//entre el centro de la circunferencia y el limite de esta, en radianes, por lo que solo tenemos que convertirlos nuevamente a grados:
+	
+	// Calculos de la caja del primer filtro (en grados)
+	$maxLat = $puntoLat + rad2deg($radio/$R);
+	$minLat = $puntoLat - rad2deg($radio/$R);
+	// Compensamos los grados de longitud obteniendo valores menores al incrementar la latitud
+	$maxLon = $puntoLon + rad2deg(asin($radio/$R) / cos(deg2rad($puntoLat)));
+	$minLon = $puntoLon - rad2deg(asin($radio/$R) / cos(deg2rad($puntoLat)));
+
+	//echo "maxlat:".$maxLat. " minLat:".$minLat. " maxLon:".$maxLon." minLon:".$minLon;
+	//Consulta que obtiene los puntos dentro del circulo presentes en la base de datos. Esta consulta contiene una subconsulta que obtiene los puntos
+	//que pasan el primer filtro y solo sobre esos se verifican cuales estan en el círculo.
+	
+	$sql = "SELECT SIG.*,
+		    PRIMER_CORTE.longitud, PRIMER_CORTE.latitud, PRIMER_CORTE.accuracy,
+		    (acos(sin(:lat)*sin(radians(PRIMER_CORTE.latitud)) + cos(:lat)*cos(radians(PRIMER_CORTE.latitud))*cos(radians(PRIMER_CORTE.longitud)-:lon)) * :R) As Distancia
+		FROM (
+			SELECT *
+			FROM fiw_location_reg
+			WHERE ((latitud Between :minLat And :maxLat) AND (longitud Between :minLon And :maxLon))
+		     ) AS PRIMER_CORTE
+		     INNER JOIN ti_signing AS SIG ON ((PRIMER_CORTE.file = SIG.file) AND (PRIMER_CORTE.id = SIG.idGeoLocation))
+		WHERE ((acos(sin(:lat)*sin(radians(Latitud)) + cos(:lat)*cos(radians(Latitud))*cos(radians(Longitud)-:lon)) * :R) < :rad)
+		ORDER BY Distancia";
+	$params = array(
+	    'lat'    => deg2rad($puntoLat),
+	    'lon'    => deg2rad($puntoLon),
+	    'minLat' => $minLat,
+	    'minLon' => $minLon,
+	    'maxLat' => $maxLat,
+	    'maxLon' => $maxLon,
+	    'rad'    => $radio,
+	    'R'      => $R,
+	);
+	$points = $conexion->prepare($sql);
+	$points->execute($params);
+	
+	//generamos json
+	$result = $points->fetchAll(PDO::FETCH_ASSOC);
+	
+	return $result;
+}
+?>
