@@ -231,8 +231,6 @@ class _InicioWidgetState extends State<InicioWidget>
 
       var jsonData = jsonDecode(request.body);
 
-      print(jsonData);
-
       if (jsonData["resultado"] == "ok") {
         usuario_pemp = Usuario_pemp.fromBD(jsonData['usuario']);
 
@@ -240,7 +238,6 @@ class _InicioWidgetState extends State<InicioWidget>
           if (usuario_pemp!.isTwoFAuth_required() &&
               (usuario_pemp!.isTwoFAuth_configured() == false)) {
             //es necesario configurar la autenticacion en 2 pasos
-            print('Hola1');
             _showTwoAuthDialog(
                 context, usuario_pemp!.twoFAuth_stepConfig!, "biometrics");
           } else {
@@ -281,13 +278,25 @@ class _InicioWidgetState extends State<InicioWidget>
         }
       } else if (jsonData["resultado"] == "error") {
         String r_str = jsonData["result_str"];
+        Map<String, String> args = {'titulo': 'Error en el login'};
         if (r_str == "TOKEN_USER_NOT_MATCH") {
+          args.addAll({'texto': 'El usuario y/o contraseña no son válidos.'});
+          args.addAll({'tipo': 'TOKEN_USER_NOT_MATCH'});
+          _showAlertDialog(context, args);
         } else if (r_str == "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND") {
+          args.addAll({
+            'texto':
+                'El usuario no ha sido encontrado o ha caducado, vuelva a logearse.'
+          });
+          args.addAll({'tipo': 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND'});
+          _showAlertDialog(context, args);
         } else if (r_str == "NEED_UNLOCK_WITH_PASSWORD") {
+          args.addAll({'texto': 'Se necesita un un desbloqueo con contraseña'});
+          args.addAll({'tipo': 'NEED_UNLOCK_WITH_PASSWORD'});
+          _showAlertDialog(context, args);
         } else if (r_str == "EXPIRED_PASSWORD") {
           _showRenewPassDialog(context, emailUser);
         } else if (r_str == "2FAuth_REQUIRED") {
-          print('Hola1');
           var result = jsonData['2FAuthData'];
 
           _showTwoAuthDialog(
@@ -325,6 +334,7 @@ class _InicioWidgetState extends State<InicioWidget>
   /// Funcion
   ///
   void validarYComprobarDatos(String metodo) {
+    Map<String, String> args = {'titulo': 'Error en el login'};
     if (metodo == "password") {
       _pass = _model.textController2.text;
       if (empLoginConfig != null && empLoginConfig!.getIsLogged()!) {
@@ -337,13 +347,10 @@ class _InicioWidgetState extends State<InicioWidget>
 
         if (_userEmail!.isEmpty || _checkToken!.isEmpty) {
           // Error no esta en cache
-        } else if (_pass!.isEmpty) {
-          // Falta clave
+          // Mostrar mensaje de error
+          args.addAll({'texto': 'Error de cache'});
+          _showAlertDialog(context, args);
         } else {
-          /*setState(() {
-            cargando = true;
-          });*/
-
           comprobarCredenciales();
 
           temporizador = Timer(const Duration(seconds: 2), () {
@@ -357,15 +364,17 @@ class _InicioWidgetState extends State<InicioWidget>
         //checkToken = null;
         if (_userEmail!.isEmpty && _pass!.isEmpty) {
           // Error no introducido email ni contraseña
+          args.addAll({'texto': 'Introduce un email y una contraseña'});
+          _showAlertDialog(context, args);
         } else if (_userEmail!.isEmpty) {
           // Error no introducido email
+          args.addAll({'texto': 'Introduce un email'});
+          _showAlertDialog(context, args);
         } else if (_pass!.isEmpty) {
           // Error no introducida contraseña
+          args.addAll({'texto': 'Introduce una contraseña'});
+          _showAlertDialog(context, args);
         } else {
-          /*setState(() {
-            cargando = true;
-          });*/
-
           comprobarCredenciales();
 
           temporizador = Timer(const Duration(seconds: 2), () {
@@ -382,6 +391,9 @@ class _InicioWidgetState extends State<InicioWidget>
           if (kDebugMode) {
             print('Sesion caducada');
           }
+
+          args.addAll({'texto': 'Sesion caducada'});
+          _showAlertDialog(context, args);
         } else {
           annotateBiometricUnlock(emailUser, checkToken, null);
         }
@@ -391,16 +403,23 @@ class _InicioWidgetState extends State<InicioWidget>
           print('La sesión ha caducado, debe realizar un login completo.');
         }
 
-        // Avisar con dialog
-
         ServicioCache.prefs.clear();
         usuario_pemp = null;
         empLoginConfig = null;
         cargarParametros();
         setState(() {});
+
+        // Avisar con dialog
+        args.addAll({
+          'texto': 'La sesión ha caducado, debe realizar un login completo.'
+        });
+        _showAlertDialog(context, args);
       }
     } else {
       // Error
+      // Avisar con dialog
+      args.addAll({'texto': 'Metodo de login no reconocido'});
+      _showAlertDialog(context, args);
     }
   }
 
@@ -770,29 +789,74 @@ class _InicioWidgetState extends State<InicioWidget>
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(args['titulo'] ?? "Titulo"),
-          content: Text(args['texto'] ?? "Titulo"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Aceptar'),
-              onPressed: () {
-                if (args['tipo'] != null) {
-                  if (args['tipo'] == 'ERROR_REGISTERING_USER') {
-                  } else if (args['tipo'] == 'USER_OR_PASS_NOT_VALID') {
-                    //Navigator.of(context).pop();
-                  } else if (args['tipo'] == 'TOKEN_USER_NOT_MATCH') {
-                  } else if (args['tipo'] == 'UNLOCK_PASS_NOT_MATCH') {
-                  } else if (args['tipo'] ==
-                      'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND') {
-                  } else if (args['tipo'] == 'EXPIRED_PASSWORD') {
-                  } else if (args['tipo'] == '2FAUTH_REQUIRED') {}
-                }
-
-                Navigator.of(context).pop();
-              },
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor:
+              const Color(0xFF0A2C4E), // azul oscuro similar al header
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF0A2C4E),
+                  Color(0xFF1B73C0)
+                ], // degradado azul
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 48,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  args['titulo'] ?? "Título",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  args['texto'] ?? "Contenido del mensaje",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      'Aceptar',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -1333,21 +1397,19 @@ class _InicioWidgetState extends State<InicioWidget>
                     ),
                   )),
         Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(0, 10, 0, 0),
-                child: InkWell(
-                  onTap: () async {
-                    final Uri url = Uri.parse(Parametros.RECOVER_PASS_URL);
-                    if (!await launchUrl(url,
-                        mode: LaunchMode.externalApplication)) {
-                      throw Exception('Could not launch $url');
-                    }
-                  },
-                  child: Text(AppLocalizations.of(context)!.btnRecuperarPass,
-                      style: const TextStyle(
-                          fontSize: 18,
-                          color: Color.fromRGBO(255, 255, 255, 1))),
-                ),
-              ),
+          padding: const EdgeInsetsDirectional.fromSTEB(0, 10, 0, 0),
+          child: InkWell(
+            onTap: () async {
+              final Uri url = Uri.parse(Parametros.RECOVER_PASS_URL);
+              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                throw Exception('Could not launch $url');
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.btnRecuperarPass,
+                style: const TextStyle(
+                    fontSize: 18, color: Color.fromRGBO(255, 255, 255, 1))),
+          ),
+        ),
         Padding(
           padding: const EdgeInsetsDirectional.all(10),
           child: SizedBox(
