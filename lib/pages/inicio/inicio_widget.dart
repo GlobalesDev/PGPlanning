@@ -231,7 +231,10 @@ class _InicioWidgetState extends State<InicioWidget>
 
       var jsonData = jsonDecode(request.body);
 
+      print(jsonData);
+
       if (jsonData["resultado"] == "ok") {
+        print(jsonData);
         usuario_pemp = Usuario_pemp.fromBD(jsonData['usuario']);
 
         if (usuario_pemp != null) {
