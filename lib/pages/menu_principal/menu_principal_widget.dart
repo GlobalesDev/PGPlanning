@@ -14,6 +14,7 @@ import 'package:p_g_planning/model/usuario_pemp.dart';
 import 'package:p_g_planning/model/parametros/parametros.dart';
 import 'package:p_g_planning/servicio_cache.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
@@ -946,6 +947,13 @@ class _MenuPrincipalWidgetState extends State<MenuPrincipalWidget>
           ''');
           },
           onNavigationRequest: (webview.NavigationRequest request) {
+            if (request.url.startsWith("otpauth://")) {
+              // Handle the OTP URL here
+              print("Intercepted OTP URL: ${request.url}");
+              // Example: launch external authenticator
+              launchUrl(Uri.parse(request.url));
+              return webview.NavigationDecision.prevent;
+            }
             if (request.url.startsWith('https://www.youtube.com/')) {
               debugPrint('blocking navigation to ${request.url}');
               return webview.NavigationDecision.prevent;

@@ -155,14 +155,14 @@ class _MenuLateralWidgetState extends State<MenuLateralWidget> {
                 _widgetMenu));
           }
         }
-      }
-      if (widget.usuario_pemp!.necesitaConfiguracion()) {
-        lista.add(opcionMenuRegistro(
-            context,
-            'Configuracion',
-            AppLocalizations.of(context)!.cambiarPlan,
-            Icons.settings,
-            _widgetMenu));
+        if (widget.usuario_pemp!.necesitaConfiguracion()) {
+          lista.add(opcionMenuRegistro(
+              context,
+              'Configuracion',
+              AppLocalizations.of(context)!.cambiarPlan,
+              Icons.settings,
+              _widgetMenu));
+        }
       }
 
       lista.add(const Divider(
@@ -390,9 +390,9 @@ class _MenuLateralWidgetState extends State<MenuLateralWidget> {
           }
 
           Provider.of<LocaleModel>(context, listen: false)
-            .set(Locale(Platform.localeName));
-          ServicioCache.prefs
-          .setString('language', Locale(Platform.localeName).languageCode.split('_')[0]);
+              .set(Locale(Platform.localeName));
+          ServicioCache.prefs.setString('language',
+              Locale(Platform.localeName).languageCode.split('_')[0]);
 
           context.pushNamed(ruta);
 

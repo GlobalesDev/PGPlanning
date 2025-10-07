@@ -1467,6 +1467,13 @@ class _InicioWidgetState extends State<InicioWidget>
           ''');
           },
           onNavigationRequest: (webview.NavigationRequest request) {
+            if (request.url.startsWith("otpauth://")) {
+              // Handle the OTP URL here
+              print("Intercepted OTP URL: ${request.url}");
+              // Example: launch external authenticator
+              launchUrl(Uri.parse(request.url));
+              return webview.NavigationDecision.prevent;
+            }
             if (request.url.startsWith('https://www.youtube.com/')) {
               debugPrint('blocking navigation to ${request.url}');
               return webview.NavigationDecision.prevent;

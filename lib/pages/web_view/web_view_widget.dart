@@ -16,12 +16,14 @@ import 'package:p_g_planning/l10n/app_localizations.dart';
 import 'package:p_g_planning/model/empLoginConfig.dart';
 import 'package:p_g_planning/model/seccion_param_type.dart';
 import 'package:p_g_planning/model/seccion_portal.dart';
+import 'package:p_g_planning/model/two_FAuth_stepObject.dart';
 import 'package:p_g_planning/model/usuario_pemp.dart';
 import 'package:p_g_planning/model/parametros/parametros.dart';
 import 'package:p_g_planning/pages/web_view/web_view_model.dart';
 import 'package:p_g_planning/servicio_cache.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
@@ -1016,6 +1018,7 @@ class _WebViewWidgetState extends State<WebViewWidget>
               updateCallback: () => setState(() {}),
               child: MenuLateralWidget(
                 openPinDialog: _showPinDialog,
+                open2Auth: _showTwoAuthDialog,
                 changeJavaScriptMode: _changeJavaScriptMode,
                 cargarParametros: cargarParametros,
                 cargarWebView: cargarWebView,
@@ -1822,4 +1825,200 @@ class _WebViewWidgetState extends State<WebViewWidget>
       return "error";
     }
   }
+
+  Future<void> _showTwoAuthDialog(BuildContext contextDrawer,
+      TwoFAuth_stepObject twoFAuth_stepObject, String metodo) async {
+    bool config = false;
+    late final webview.PlatformWebViewControllerCreationParams params;
+    if (webview.WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
+    } else {
+      params = const webview.PlatformWebViewControllerCreationParams();
+    }
+
+    final webview.WebViewController controller =
+        webview.WebViewController.fromPlatformCreationParams(params);
+
+    controller
+      ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        webview.NavigationDelegate(
+          onProgress: (int progress) {
+            debugPrint('WebView is loading (progress : $progress%)');
+          },
+          onPageStarted: (String url) {
+            debugPrint('Page started loading: $url');
+          },
+          onPageFinished: (String url) async {
+            debugPrint('Page finished loading: $url');
+          },
+          onWebResourceError: (webview.WebResourceError error) {
+            debugPrint('''
+              Page resource error:
+              code: ${error.errorCode}
+              description: ${error.description}
+              errorType: ${error.errorType}
+              isForMainFrame: ${error.isForMainFrame}
+          ''');
+          },
+          onNavigationRequest: (webview.NavigationRequest request) {
+            if (request.url.startsWith("otpauth://")) {
+              // Handle the OTP URL here
+              print("Intercepted OTP URL: ${request.url}");
+              // Example: launch external authenticator
+              launchUrl(Uri.parse(request.url));
+              return webview.NavigationDecision.prevent;
+            }
+            if (request.url.startsWith('https://www.youtube.com/')) {
+              debugPrint('blocking navigation to ${request.url}');
+              return webview.NavigationDecision.prevent;
+            }
+            debugPrint('allowing navigation to ${request.url}');
+            return webview.NavigationDecision.navigate;
+          },
+          /*onUrlChange: (UrlChange change) {
+            debugPrint('url change to ${change.url}');
+          },
+          onHttpAuthRequest: (HttpAuthRequest request) {
+            openDialog(request);
+          },*/
+        ),
+      )
+      ..addJavaScriptChannel(
+        'flutter_androidAppVersionInfo',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          var json = await androidAppVersionInfo();
+          print("flutter_androidAppVersionInfo: ${message.message}");
+
+          controller.runJavaScript(
+              '''flutterNativeWebView_resolveResponseFor(JSON.stringify({"questionAnswered": "androidAppVersionInfo", "response": $json}))''');
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_androidGetUserLanguage',
+        onMessageReceived: (webview.JavaScriptMessage message) {
+          print("flutter_androidGetUserLanguage: ${message.message}");
+
+          controller.runJavaScript(
+              '''flutterNativeWebView_resolveResponseFor(JSON.stringify( {‘questionAnswered’: ‘androidGetUserLanguage, ‘response’: ‘es_ES’}))''');
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_androidGetUserTimeZone',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_androidGetUserTimeZone: ${message.message}");
+
+          controller.runJavaScript(
+              '''flutterNativeWebView_resolveResponseFor(JSON.stringify({‘questionAnswered’: ‘androidGetUserTimeZone, ‘response’: ‘Europe/Madrid }))''');
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onSuccess2FAuthCodeProcess',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print(
+              "flutter_2FAuth_onSuccess2FAuthCodeProcess: ${message.message}");
+
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onSuccess2FAuthConfigured',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_2FAuth_onSuccess2FAuthConfigured: ${message.message}");
+
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onSuccess2FAuthDeletion',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_2FAuth_onSuccess2FAuthDeletion: ${message.message}");
+
+          widget.usuario_pemp!.twoFAuth_configured = false;
+          widget.usuario_pemp!.twoFAuth_stepConfig = null;
+
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onClose2FAuthDeletion',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_2FAuth_onClose2FAuthDeletion: ${message.message}");
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onClose2FAuthConfiguration',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print(
+              "flutter_2FAuth_onClose2FAuthConfiguration: ${message.message}");
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onClose2FAuthByNoRecoverableError',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print(
+              "flutter_2FAuth_onClose2FAuthByNoRecoverableError: ${message.message}");
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_onClose2FAuthCodeProcess',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_2FAuth_onClose2FAuthCodeProcess: ${message.message}");
+          Navigator.pop(context);
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_retrieveValidationConfig',
+        onMessageReceived: (webview.JavaScriptMessage message) async {
+          print("flutter_2FAuth_retrieveValidationConfig: ${message.message}");
+
+          Map<String, dynamic> json = {};
+
+          for (var param in twoFAuth_stepObject.twoFAuth_step_params) {
+            json[param.name] = param.value;
+          }
+
+          json['deviceTZ'] = DateTime.now().timeZoneName;
+
+          if (isiOS) {
+            json['typeAPP'] = 'IOS';
+          } else if (isAndroid) {
+            json['typeAPP'] = 'ANDROID';
+          }
+
+          controller.runJavaScript(
+              '''flutterNativeWebView_resolveResponseFor(JSON.stringify({"questionAnswered": "2FAuth_retrieveValidationConfig", "response": ${jsonEncode(json)}}))''');
+
+          config = true;
+        },
+      )
+      ..addJavaScriptChannel(
+        'flutter_2FAuth_printToConsoleLog',
+        onMessageReceived: (webview.JavaScriptMessage message) {
+          print("flutter_2FAuth_printToConsoleLog: ${message.message}");
+        },
+      )
+      ..loadRequest(Uri.parse(twoFAuth_stepObject.twoFAuth_step_url));
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(10, 40, 10, 40),
+          child: SizedBox(
+            child: webview.WebViewWidget(
+              controller: controller,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }
