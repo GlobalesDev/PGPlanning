@@ -192,6 +192,8 @@ class Parametros {
 	/// 	Mensaje con detalle de excepción si ocurreo algún error al ejecutar consulta del usuario
 	static final String URL_ANDROID_POST_CHANGE_EMP_PWD = ROOT_URL + URL_ANDROIDPOST_BASE_API + "?function=changeEmpPassword";
 
+  static final String URL_ANDROID_POST_CHANGE_EMP_PWD_NEW = ROOT_URL + URL_ANDROIDPOST_BASE_API + "?function=changeEmpPasswordNew";
+
   static final String URL_POST_CHANGE_LANG = ROOT_URL + URL_ANDROIDPOST_BASE_API + '?function=configurarLanguageEmpleado';
 
 	/// Funcion que genera/cambia la clave de descarga del empleado.

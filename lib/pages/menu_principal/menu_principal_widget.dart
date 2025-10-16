@@ -100,7 +100,7 @@ class _MenuPrincipalWidgetState extends State<MenuPrincipalWidget>
         for (var element in (json['secciones'] as List<dynamic>)) {
           print(element);
           var tmp = SeccionPortal.fromBD(element);
-          
+
           if (tmp.iconBadge_callAPIFunction != '') {
             await tmp.getBagdeNumber();
           }
@@ -474,9 +474,9 @@ class _MenuPrincipalWidgetState extends State<MenuPrincipalWidget>
                                             child: Text(
                                                 AppLocalizations.of(context)!
                                                     .cambiarPlanificacion,
-                                                    style: TextStyle(
-                                                      decoration: TextDecoration.underline
-                                                    )),
+                                                style: TextStyle(
+                                                    decoration: TextDecoration
+                                                        .underline)),
                                             onTap: () {
                                               cambiarPlan();
                                             },
@@ -946,8 +946,23 @@ class _MenuPrincipalWidgetState extends State<MenuPrincipalWidget>
               isForMainFrame: ${error.isForMainFrame}
           ''');
           },
-          onNavigationRequest: (webview.NavigationRequest request) {
-            if (request.url.startsWith("otpauth://")) {
+          onNavigationRequest: (webview.NavigationRequest request) async {
+            if (request.url.startsWith('http') ||
+                request.url.startsWith('https')) {
+              // ✅ Deja pasar URLs normales
+              return webview.NavigationDecision.navigate;
+            } else {
+              // 🚀 Abre enlaces externos (como itms-appss://)
+              print("Intercepted OTP URL: ${request.url}");
+              if (await canLaunchUrl(Uri.parse(request.url))) {
+                await launchUrl(Uri.parse(request.url),
+                    mode: LaunchMode.externalApplication);
+                
+              }
+              return webview.NavigationDecision.prevent;
+            }
+            /*if (request.url.startsWith("otpauth://") ||
+                request.url.startsWith("itms-appss://")) {
               // Handle the OTP URL here
               print("Intercepted OTP URL: ${request.url}");
               // Example: launch external authenticator
@@ -959,7 +974,7 @@ class _MenuPrincipalWidgetState extends State<MenuPrincipalWidget>
               return webview.NavigationDecision.prevent;
             }
             debugPrint('allowing navigation to ${request.url}');
-            return webview.NavigationDecision.navigate;
+            return webview.NavigationDecision.navigate;*/
           },
           /*onUrlChange: (UrlChange change) {
             debugPrint('url change to ${change.url}');

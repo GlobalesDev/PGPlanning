@@ -118,13 +118,6 @@ class _InicioWidgetState extends State<InicioWidget>
     scaffoldKey.currentState!.closeDrawer();
   }
 
-  /// Funcion que comprueba si existen actualizaciones disponibles
-  ///
-  void checkForNewAppUpdateAvailability() {
-    if (isAndroid) {
-    } else if (isiOS) {}
-  }
-
   /// Funcion que comprueba si el dispositivo tiene medios biometricos configurados
   ///
   Future<void> comprobarBioMetricos() async {
@@ -298,7 +291,8 @@ class _InicioWidgetState extends State<InicioWidget>
           args.addAll({'tipo': 'NEED_UNLOCK_WITH_PASSWORD'});
           _showAlertDialog(context, args);
         } else if (r_str == "EXPIRED_PASSWORD") {
-          _showRenewPassDialog(context, emailUser);
+          await _showPasswordChangedDialog(context, emailUser,
+              jsonData['old_pass'], jsonData['old_pass2'], true);
         } else if (r_str == "2FAuth_REQUIRED") {
           var result = jsonData['2FAuthData'];
 
@@ -355,7 +349,6 @@ class _InicioWidgetState extends State<InicioWidget>
           _showAlertDialog(context, args);
         } else {
           comprobarCredenciales();
-
           temporizador = Timer(const Duration(seconds: 2), () {
             comprobarUsuario(null);
           });
@@ -379,7 +372,6 @@ class _InicioWidgetState extends State<InicioWidget>
           _showAlertDialog(context, args);
         } else {
           comprobarCredenciales();
-
           temporizador = Timer(const Duration(seconds: 2), () {
             comprobarUsuario(null);
           });
@@ -504,6 +496,11 @@ class _InicioWidgetState extends State<InicioWidget>
     try {
       Response request = await post(Uri.parse(API_call_url), body: params);
       var jsonData = jsonDecode(request.body) as Map<String, dynamic>;
+
+      if (dcontext!.mounted) {
+        Navigator.pop(dcontext!);
+      }
+
       if (jsonData["resultado"] == "ok") {
         if (jsonData["usuario"] != null) {
           print(jsonData["usuario"]);
@@ -512,10 +509,6 @@ class _InicioWidgetState extends State<InicioWidget>
 
           ServicioCache.prefs
               .setString("usuario_pemp", jsonEncode(usuario_pemp!.toJson()));
-
-          if (dcontext != null) {
-            Navigator.pop(dcontext!);
-          }
 
           //una vez que tenemos el usuario, existen 2 opciones
           // 1 - Es requerida la autenticacion en 2 pasos y no esta configurada --> saltar a la configuracion
@@ -652,8 +645,8 @@ class _InicioWidgetState extends State<InicioWidget>
           args.addAll({'tipo': 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND'});
           _showAlertDialog(context, args);
         } else if (r_str == "EXPIRED_PASSWORD") {
-          // Mostrar dialogo de cambio de password
-          _showRenewPassDialog(context, email);
+          await _showPasswordChangedDialog(
+              context, email, passMD5, passSHA256, false);
         } else if (r_str == "2FAuth_REQUIRED") {
           // Recibimos los parametros de la configuracion en dos pasos
           var result = jsonData['2FAuthData'];
@@ -715,13 +708,24 @@ class _InicioWidgetState extends State<InicioWidget>
 
   /// Funcion que cambio la contraseña del portal de pgplanning. Se usa cuando la clave expira.
   ///
-  void _changeAdminPassword(String userEmail, String oldPass, String newPass,
-      String newPassCopy) async {
-    String oldPassEnc = md5.convert(utf8.encode("PGP$oldPass")).toString();
-    String oldPassEnc2 = sha256.convert(utf8.encode("PGP$oldPass")).toString();
+  Future<void> _changeAdminPassword(
+      String userEmail,
+      String oldPassEnc,
+      String oldPassEnc2,
+      String newPass,
+      String newPassCopy,
+      bool esBiometrico) async {
+    if (!esBiometrico) {
+      oldPassEnc =
+          md5.convert(utf8.encode("PGP${oldPassEnc.toUpperCase()}")).toString();
+      oldPassEnc2 = sha256
+          .convert(utf8.encode("PGP${oldPassEnc2.toUpperCase()}"))
+          .toString();
+    }
 
     Response request = await post(
-        Uri.parse(Parametros.URL_ANDROID_POST_CHANGE_EMP_PWD),
+        //Uri.parse(Parametros.URL_ANDROID_POST_CHANGE_EMP_PWD),
+        Uri.parse(Parametros.URL_ANDROID_POST_CHANGE_EMP_PWD_NEW),
         body: {
           "emailUser": userEmail,
           "oldPassword": oldPassEnc,
@@ -732,15 +736,24 @@ class _InicioWidgetState extends State<InicioWidget>
 
     var jsonData = jsonDecode(request.body) as Map<String, dynamic>;
 
+    if (dcontext!.mounted) {
+      Navigator.pop(dcontext!);
+    }
+
     if (jsonData["resultado"] == "ok") {
       _model.textController1.text = '';
       _model.textController2.text = '';
-      if (dcontext != null) {
-        Navigator.pop(dcontext!);
-      }
+
+      Map<String, String> args = {'titulo': 'Contraseña actualizada'};
+      args.addAll({
+        'texto':
+            'Su contraseña ha sido actualizada satisfactoriamente, puede volver a logearse con la nueva contraseña.'
+      });
+      _showAlertDialog(context, args);
     } else if (jsonData["resultado"] == "error") {
+      print(jsonData);
       String r_str = jsonData["result_str"];
-      Map<String, String> args = {'titulo': 'Error en el login'};
+      Map<String, String> args = {'titulo': 'Error en el cambio de contraseña'};
       if (r_str == "WEAK_PASSWORD_STRENGTH") {
         //La nueva contraseña no cumple los requisitos de complejidad.
         args.addAll({
@@ -783,12 +796,93 @@ class _InicioWidgetState extends State<InicioWidget>
   }
 
   ///
+  Future<void> _showPasswordChangedDialog(BuildContext context, String email,
+      String oldPassEnc, String oldPassEnc2, bool esBiometrico) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: const Color(0xFF0A2C4E),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    'Su contraseña ha cambiado.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 24.0),
+                  child: Text(
+                    'Para acceder al sistema debe cambiarla y volver a logearse.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0A2C4E),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (dcontext!.mounted) {
+                          Navigator.pop(dcontext!);
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Cerrar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0A2C4E),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _showRenewPassDialog(context, email, oldPassEnc,
+                            oldPassEnc2, esBiometrico);
+                      },
+                      child: const Text('Cambiar contraseña'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  ///
   ///
   void _showAlertDialog(BuildContext context, Map<String, String> args) {
-    if (dcontext != null) {
-      Navigator.of(dcontext!).pop();
-    }
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1132,6 +1226,7 @@ class _InicioWidgetState extends State<InicioWidget>
                     ServicioCache.prefs.setString(
                         'language', locale.languageCode.split('_')[0]);
                     ServicioCache.prefs.clear();
+                    _model.textController2!.clear();
                     usuario_pemp = null;
                     empLoginConfig = null;
                     isWaitingAuth = false;
@@ -1466,12 +1561,13 @@ class _InicioWidgetState extends State<InicioWidget>
               isForMainFrame: ${error.isForMainFrame}
           ''');
           },
-          onNavigationRequest: (webview.NavigationRequest request) {
-            if (request.url.startsWith("otpauth://")) {
+          onNavigationRequest: (webview.NavigationRequest request) async {
+            if (request.url.startsWith("otpauth://") ||
+                request.url.startsWith("itms-appss://")) {
               // Handle the OTP URL here
               print("Intercepted OTP URL: ${request.url}");
               // Example: launch external authenticator
-              launchUrl(Uri.parse(request.url));
+              await launchUrl(Uri.parse(request.url));
               return webview.NavigationDecision.prevent;
             }
             if (request.url.startsWith('https://www.youtube.com/')) {
@@ -1681,7 +1777,252 @@ class _InicioWidgetState extends State<InicioWidget>
     }
   }
 
-  Future<void> _showRenewPassDialog(BuildContext context, String email) async {
+  // Validación de contraseña según las reglas
+  bool _isValidPassword(String password) {
+    const specialChars = r'!#$%&()*+,-./:;<=>?@[\]^_`{|}~';
+    if (password.length < 8) return false;
+
+    if (!password.contains(RegExp(r'[A-Z]'))) return false;
+
+    if (!password.contains(RegExp(r'[a-z]'))) return false;
+
+    if (!password.contains(RegExp(r'[0-9]'))) return false;
+
+    if (!password.contains(RegExp('[${RegExp.escape(specialChars)}]')))
+      return false;
+
+    return true;
+  }
+
+  Future<void> _showRenewPassDialog(BuildContext context, String email,
+      String oldPassEnc, String oldPassEnc2, bool esBiometrico) async {
+    TextEditingController passNewController = TextEditingController();
+    TextEditingController passNewRController = TextEditingController();
+    bool passValid = false;
+    bool passRepeatValid = false;
+    String errorPass = '';
+    String errorRepeat = '';
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            passValid = _isValidPassword(passNewController.text);
+            passRepeatValid = passNewController.text.isNotEmpty &&
+                passNewController.text == passNewRController.text;
+            errorPass = passNewController.text.isEmpty || passValid
+                ? ''
+                : 'La contraseña no cumple los requisitos.';
+            errorRepeat = passNewRController.text.isEmpty || passRepeatValid
+                ? ''
+                : 'Las contraseñas no coinciden.';
+            return Dialog(
+              child: SingleChildScrollView(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 27, 66, 88),
+                        Color.fromARGB(255, 24, 83, 104),
+                        Color.fromARGB(255, 2, 119, 158)
+                      ],
+                      stops: [0.0, 0.3, 0.8],
+                      begin: AlignmentDirectional(-1.0, -0.94),
+                      end: AlignmentDirectional(1.0, 0.94),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(10, 10, 10, 10),
+                        child: Image(
+                          image: AssetImage('assets/images/ic_renew_pass.png'),
+                          width: 48,
+                          height: 48,
+                        ),
+                      ),
+                      const Text(
+                        'Cambio de contraseña',
+                        style: TextStyle(
+                          color: Color.fromRGBO(255, 255, 255, 1),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(10, 10, 10, 10),
+                        child: Text(
+                          'Para cambiar su contraseña, debe introducir la nueva contraseña y repetirla. Recuerde que la nueva contraseña debe ser de al menos 8 caracteres y contener mayúsculas, minúsculas, dígitos del 0 al 9 y un caracter especial.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color.fromRGBO(255, 255, 255, 1),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Padding(
+                        padding:
+                            const EdgeInsetsDirectional.fromSTEB(10, 0, 10, 10),
+                        child: Text(
+                          'Usuario: $email',
+                          style: const TextStyle(
+                            color: Color.fromRGBO(255, 255, 255, 1),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding:
+                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: passNewController,
+                                obscureText: true,
+                                onChanged: (_) => setState(() {}),
+                                decoration: const InputDecoration(
+                                  hintText: 'Contraseña nueva',
+                                  hintStyle: TextStyle(
+                                      color: Color.fromARGB(255, 255, 255, 255),
+                                      fontSize: 13),
+                                ),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: passNewController.text.isEmpty
+                                  ? const SizedBox(width: 24)
+                                  : (passValid
+                                      ? const Icon(Icons.check_circle,
+                                          color: Colors.green, size: 24)
+                                      : const Icon(Icons.error,
+                                          color: Colors.red, size: 24)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (errorPass.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(errorPass,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 11)),
+                        ),
+                      Padding(
+                        padding:
+                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: passNewRController,
+                                obscureText: true,
+                                onChanged: (_) => setState(() {}),
+                                decoration: const InputDecoration(
+                                  hintText: 'Repetir contraseña',
+                                  hintStyle: TextStyle(
+                                      color: Color.fromARGB(255, 255, 255, 255),
+                                      fontSize: 13),
+                                ),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: passNewRController.text.isEmpty
+                                  ? const SizedBox(width: 24)
+                                  : (passRepeatValid
+                                      ? const Icon(Icons.check_circle,
+                                          color: Colors.green, size: 24)
+                                      : const Icon(Icons.error,
+                                          color: Colors.red, size: 24)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (errorRepeat.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(errorRepeat,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 11)),
+                        ),
+                      Padding(
+                        padding:
+                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF0A2C4E),
+                                  minimumSize: const Size(80, 32),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('Cancelar',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(80, 32),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: passValid && passRepeatValid
+                                    ? () async {
+                                        Navigator.of(context).pop();
+                                        await _changeAdminPassword(
+                                            email,
+                                            oldPassEnc,
+                                            oldPassEnc2,
+                                            passNewController.text.trim(),
+                                            passNewRController.text.trim(),
+                                            esBiometrico);
+                                      }
+                                    : null,
+                                child: const Text('Cambiar',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  /*Future<void> _showRenewPassDialog(BuildContext context, String email) async {
     TextEditingController passOldController = TextEditingController();
     TextEditingController passNewController = TextEditingController();
     TextEditingController passNewRController = TextEditingController();
@@ -1778,6 +2119,9 @@ class _InicioWidgetState extends State<InicioWidget>
                           children: [
                             FFButtonWidget(
                               onPressed: () async {
+                                if (dcontext!.mounted) {
+                                  Navigator.pop(dcontext!);
+                                }
                                 Navigator.pop(context);
                               },
                               text: 'Cancelar',
@@ -1838,5 +2182,5 @@ class _InicioWidgetState extends State<InicioWidget>
             ),
           );
         });
-  }
+  }*/
 }

@@ -16,6 +16,11 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>PGPlanning</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>itms-apps</string>
+		<string>itms-appss</string>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
