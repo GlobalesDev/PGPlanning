@@ -214,6 +214,12 @@ abstract class AppLocalizations {
   /// **'ACEPTAR'**
   String get aceptarM;
 
+  /// No description provided for @aceptar.
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get aceptar;
+
   /// No description provided for @user.
   ///
   /// In es, this message translates to:
@@ -351,6 +357,210 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cargando...'**
   String get cargando;
+
+  /// No description provided for @errorLogin.
+  ///
+  /// In es, this message translates to:
+  /// **'Error en el login'**
+  String get errorLogin;
+
+  /// No description provided for @incorrectPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña incorrecta'**
+  String get incorrectPassword;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'Las contraseñas no coinciden'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @passwordRequirementsNotMet.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña no cumple los requisitos'**
+  String get passwordRequirementsNotMet;
+
+  /// No description provided for @passwordRequirementsDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial'**
+  String get passwordRequirementsDetail;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambio de contraseña'**
+  String get changePassword;
+
+  /// No description provided for @close.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get close;
+
+  /// No description provided for @passwordChangedInfo.
+  ///
+  /// In es, this message translates to:
+  /// **'Debe cambiar la contraseña para acceder al sistema.'**
+  String get passwordChangedInfo;
+
+  /// No description provided for @repeatPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Repetir contraseña'**
+  String get repeatPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva contraseña'**
+  String get newPassword;
+
+  /// No description provided for @passwordNoSpaces.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña no puede contener espacios'**
+  String get passwordNoSpaces;
+
+  /// No description provided for @processing.
+  ///
+  /// In es, this message translates to:
+  /// **'Procesando...'**
+  String get processing;
+
+  /// No description provided for @passwordExpired.
+  ///
+  /// In es, this message translates to:
+  /// **'Su contraseña ha caducado.'**
+  String get passwordExpired;
+
+  /// No description provided for @change.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar'**
+  String get change;
+
+  /// No description provided for @errorRegisteringUser.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocurrió un error al registrar el usuario, vuelva a intentarlo y si el problema persiste contacte con soporte.'**
+  String get errorRegisteringUser;
+
+  /// No description provided for @userOrPassNotValid.
+  ///
+  /// In es, this message translates to:
+  /// **'El usuario y/o contraseña no son válidos.'**
+  String get userOrPassNotValid;
+
+  /// No description provided for @unlockPassNotMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña no es válida.'**
+  String get unlockPassNotMatch;
+
+  /// No description provided for @userAssociatedWithTokenNotFound.
+  ///
+  /// In es, this message translates to:
+  /// **'El usuario no ha sido encontrado o ha caducado, vuelva a logearse.'**
+  String get userAssociatedWithTokenNotFound;
+
+  /// No description provided for @needUnlockWithPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Se necesita un un desbloqueo con contraseña'**
+  String get needUnlockWithPassword;
+
+  /// No description provided for @errorEmailAndPasswordRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un email y una contraseña'**
+  String get errorEmailAndPasswordRequired;
+
+  /// No description provided for @errorEmailRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce un email'**
+  String get errorEmailRequired;
+
+  /// No description provided for @errorPasswordRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Introduce una contraseña'**
+  String get errorPasswordRequired;
+
+  /// No description provided for @errorSessionExpired.
+  ///
+  /// In es, this message translates to:
+  /// **'Sesion caducada'**
+  String get errorSessionExpired;
+
+  /// No description provided for @errorSessionMustLogin.
+  ///
+  /// In es, this message translates to:
+  /// **'La sesión ha caducado, debe realizar un login completo.'**
+  String get errorSessionMustLogin;
+
+  /// No description provided for @errorLoginMethodNotRecognized.
+  ///
+  /// In es, this message translates to:
+  /// **'Metodo de login no reconocido'**
+  String get errorLoginMethodNotRecognized;
+
+  /// No description provided for @errorCache.
+  ///
+  /// In es, this message translates to:
+  /// **'Error de cache'**
+  String get errorCache;
+
+  /// No description provided for @passwordUpdatedTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña actualizada'**
+  String get passwordUpdatedTitle;
+
+  /// No description provided for @passwordUpdatedText.
+  ///
+  /// In es, this message translates to:
+  /// **'Su contraseña ha sido actualizada satisfactoriamente, puede volver a logearse con la nueva contraseña.'**
+  String get passwordUpdatedText;
+
+  /// No description provided for @weakPasswordStrength.
+  ///
+  /// In es, this message translates to:
+  /// **'La nueva contraseña no cumple los requisitos de complejidad.'**
+  String get weakPasswordStrength;
+
+  /// No description provided for @errorSavingTryAgain.
+  ///
+  /// In es, this message translates to:
+  /// **'Ha ocurrido un error al intentar guardar la nueva contraseña.'**
+  String get errorSavingTryAgain;
+
+  /// No description provided for @passwordRecentlyUsed.
+  ///
+  /// In es, this message translates to:
+  /// **'La nueva contraseña no cumple el requisito de historico de contraseñas.'**
+  String get passwordRecentlyUsed;
+
+  /// No description provided for @newPasswordsNotMatch.
+  ///
+  /// In es, this message translates to:
+  /// **'La nueva contraseña y su repeticion no coinciden.'**
+  String get newPasswordsNotMatch;
+
+  /// No description provided for @userOrPassNotValidCurrent.
+  ///
+  /// In es, this message translates to:
+  /// **'La actual contraseña no es correcta.'**
+  String get userOrPassNotValidCurrent;
+
+  /// No description provided for @errorNewPass.
+  ///
+  /// In es, this message translates to:
+  /// **'Error en el cambio de contraseña'**
+  String get errorNewPass;
 }
 
 class _AppLocalizationsDelegate

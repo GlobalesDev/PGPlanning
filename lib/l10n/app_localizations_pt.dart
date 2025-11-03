@@ -68,7 +68,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get aceptarM => 'ACEITAR';
 
   @override
-  String get user => 'Utilizador';
+  String get aceptar => 'Aceitar';
+
+  @override
+  String get user => 'Usuário';
 
   @override
   String get empresa => 'Empresa';
@@ -137,4 +140,120 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get cargando => 'Carregamento...';
+
+  @override
+  String get errorLogin => 'Erro no login';
+
+  @override
+  String get incorrectPassword => 'Palavra-passe incorreta';
+
+  @override
+  String get passwordsDoNotMatch => 'As palavras-passe não coincidem';
+
+  @override
+  String get passwordRequirementsNotMet =>
+      'A palavra-passe não cumpre os requisitos';
+
+  @override
+  String get passwordRequirementsDetail =>
+      'A palavra-passe deve ter pelo menos 8 caracteres, uma maiúscula, uma minúscula, um número e um carácter especial';
+
+  @override
+  String get changePassword => 'Alterar palavra-passe';
+
+  @override
+  String get close => 'Fechar';
+
+  @override
+  String get passwordChangedInfo =>
+      'Tem de alterar a palavra-passe para aceder ao sistema.';
+
+  @override
+  String get repeatPassword => 'Repetir palavra-passe';
+
+  @override
+  String get newPassword => 'Nova palavra-passe';
+
+  @override
+  String get passwordNoSpaces => 'A palavra-passe não pode conter espaços';
+
+  @override
+  String get processing => 'A processar...';
+
+  @override
+  String get passwordExpired => 'A sua palavra-passe expirou.';
+
+  @override
+  String get change => 'Alterar';
+
+  @override
+  String get errorRegisteringUser =>
+      'Ocorreu um erro ao registar o utilizador, tente novamente e se o problema persistir contacte o suporte.';
+
+  @override
+  String get userOrPassNotValid =>
+      'O utilizador e/ou palavra-passe não são válidos.';
+
+  @override
+  String get unlockPassNotMatch => 'A palavra-passe não é válida.';
+
+  @override
+  String get userAssociatedWithTokenNotFound =>
+      'O utilizador não foi encontrado ou expirou, volte a iniciar sessão.';
+
+  @override
+  String get needUnlockWithPassword =>
+      'É necessário desbloquear com palavra-passe';
+
+  @override
+  String get errorEmailAndPasswordRequired =>
+      'Introduza um e-mail e uma palavra-passe';
+
+  @override
+  String get errorEmailRequired => 'Introduza um e-mail';
+
+  @override
+  String get errorPasswordRequired => 'Introduza uma palavra-passe';
+
+  @override
+  String get errorSessionExpired => 'Sessão expirada';
+
+  @override
+  String get errorSessionMustLogin =>
+      'A sessão expirou, deve iniciar sessão novamente.';
+
+  @override
+  String get errorLoginMethodNotRecognized => 'Método de login não reconhecido';
+
+  @override
+  String get errorCache => 'Erro de cache';
+
+  @override
+  String get passwordUpdatedTitle => 'Senha atualizada';
+
+  @override
+  String get passwordUpdatedText =>
+      'Sua senha foi atualizada com sucesso, você pode fazer login novamente com a nova senha.';
+
+  @override
+  String get weakPasswordStrength =>
+      'A nova senha não atende aos requisitos de complexidade.';
+
+  @override
+  String get errorSavingTryAgain =>
+      'Ocorreu um erro ao tentar salvar a nova senha.';
+
+  @override
+  String get passwordRecentlyUsed =>
+      'A nova senha não atende ao requisito de histórico de senhas.';
+
+  @override
+  String get newPasswordsNotMatch =>
+      'A nova senha e sua repetição não coincidem.';
+
+  @override
+  String get userOrPassNotValidCurrent => 'A senha atual não está correta.';
+
+  @override
+  String get errorNewPass => 'Erro ao alterar a senha';
 }

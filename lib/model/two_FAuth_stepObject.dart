@@ -7,9 +7,11 @@ class TwoFAuth_stepObject {
 	List<SeccionParam> twoFAuth_step_params = [];
 
   TwoFAuth_stepObject.fromBD(Map<String, dynamic> lista) {
-    if (lista['2FAuth_required'] == 'false') {
+    if (lista['2FAuth_required'] == false) {
+      print('entro1');
       twoFAuth_required = false;
-    } else if (lista['2FAuth_required'] == 'true') {
+    } else if (lista['2FAuth_required'] == true) {
+      print('entro2');
       twoFAuth_required = true;
     }
     twoFAuth_step = lista['2FAuth_step'];

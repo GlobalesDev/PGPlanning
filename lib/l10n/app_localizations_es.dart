@@ -67,6 +67,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get aceptarM => 'ACEPTAR';
 
   @override
+  String get aceptar => 'Aceptar';
+
+  @override
   String get user => 'Usuario';
 
   @override
@@ -136,4 +139,120 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cargando => 'Cargando...';
+
+  @override
+  String get errorLogin => 'Error en el login';
+
+  @override
+  String get incorrectPassword => 'Contraseña incorrecta';
+
+  @override
+  String get passwordsDoNotMatch => 'Las contraseñas no coinciden';
+
+  @override
+  String get passwordRequirementsNotMet =>
+      'La contraseña no cumple los requisitos';
+
+  @override
+  String get passwordRequirementsDetail =>
+      'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial';
+
+  @override
+  String get changePassword => 'Cambio de contraseña';
+
+  @override
+  String get close => 'Cerrar';
+
+  @override
+  String get passwordChangedInfo =>
+      'Debe cambiar la contraseña para acceder al sistema.';
+
+  @override
+  String get repeatPassword => 'Repetir contraseña';
+
+  @override
+  String get newPassword => 'Nueva contraseña';
+
+  @override
+  String get passwordNoSpaces => 'La contraseña no puede contener espacios';
+
+  @override
+  String get processing => 'Procesando...';
+
+  @override
+  String get passwordExpired => 'Su contraseña ha caducado.';
+
+  @override
+  String get change => 'Cambiar';
+
+  @override
+  String get errorRegisteringUser =>
+      'Ocurrió un error al registrar el usuario, vuelva a intentarlo y si el problema persiste contacte con soporte.';
+
+  @override
+  String get userOrPassNotValid => 'El usuario y/o contraseña no son válidos.';
+
+  @override
+  String get unlockPassNotMatch => 'La contraseña no es válida.';
+
+  @override
+  String get userAssociatedWithTokenNotFound =>
+      'El usuario no ha sido encontrado o ha caducado, vuelva a logearse.';
+
+  @override
+  String get needUnlockWithPassword =>
+      'Se necesita un un desbloqueo con contraseña';
+
+  @override
+  String get errorEmailAndPasswordRequired =>
+      'Introduce un email y una contraseña';
+
+  @override
+  String get errorEmailRequired => 'Introduce un email';
+
+  @override
+  String get errorPasswordRequired => 'Introduce una contraseña';
+
+  @override
+  String get errorSessionExpired => 'Sesion caducada';
+
+  @override
+  String get errorSessionMustLogin =>
+      'La sesión ha caducado, debe realizar un login completo.';
+
+  @override
+  String get errorLoginMethodNotRecognized => 'Metodo de login no reconocido';
+
+  @override
+  String get errorCache => 'Error de cache';
+
+  @override
+  String get passwordUpdatedTitle => 'Contraseña actualizada';
+
+  @override
+  String get passwordUpdatedText =>
+      'Su contraseña ha sido actualizada satisfactoriamente, puede volver a logearse con la nueva contraseña.';
+
+  @override
+  String get weakPasswordStrength =>
+      'La nueva contraseña no cumple los requisitos de complejidad.';
+
+  @override
+  String get errorSavingTryAgain =>
+      'Ha ocurrido un error al intentar guardar la nueva contraseña.';
+
+  @override
+  String get passwordRecentlyUsed =>
+      'La nueva contraseña no cumple el requisito de historico de contraseñas.';
+
+  @override
+  String get newPasswordsNotMatch =>
+      'La nueva contraseña y su repeticion no coinciden.';
+
+  @override
+  String get userOrPassNotValidCurrent =>
+      'La actual contraseña no es correcta.';
+
+  @override
+  String get errorNewPass => 'Error en el cambio de contraseña';
 }

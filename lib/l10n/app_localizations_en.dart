@@ -68,6 +68,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aceptarM => 'ACCEPT';
 
   @override
+  String get aceptar => 'Accept';
+
+  @override
   String get user => 'User';
 
   @override
@@ -137,4 +140,119 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cargando => 'Loading...';
+
+  @override
+  String get errorLogin => 'Login error';
+
+  @override
+  String get incorrectPassword => 'Incorrect password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get passwordRequirementsNotMet =>
+      'Password does not meet requirements';
+
+  @override
+  String get passwordRequirementsDetail =>
+      'Password must be at least 8 characters, one uppercase, one lowercase, one number and one special character';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get passwordChangedInfo =>
+      'You must change your password to access the system.';
+
+  @override
+  String get repeatPassword => 'Repeat password';
+
+  @override
+  String get newPassword => 'New password';
+
+  @override
+  String get passwordNoSpaces => 'Password cannot contain spaces';
+
+  @override
+  String get processing => 'Processing...';
+
+  @override
+  String get passwordExpired => 'Your password has expired.';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get errorRegisteringUser =>
+      'An error occurred while registering the user, please try again. If the problem persists, contact support.';
+
+  @override
+  String get userOrPassNotValid =>
+      'The username and/or password are not valid.';
+
+  @override
+  String get unlockPassNotMatch => 'The password is not valid.';
+
+  @override
+  String get userAssociatedWithTokenNotFound =>
+      'The user was not found or has expired, please log in again.';
+
+  @override
+  String get needUnlockWithPassword => 'A password unlock is required';
+
+  @override
+  String get errorEmailAndPasswordRequired => 'Enter an email and a password';
+
+  @override
+  String get errorEmailRequired => 'Enter an email';
+
+  @override
+  String get errorPasswordRequired => 'Enter a password';
+
+  @override
+  String get errorSessionExpired => 'Session expired';
+
+  @override
+  String get errorSessionMustLogin =>
+      'Session has expired, you must log in again.';
+
+  @override
+  String get errorLoginMethodNotRecognized => 'Login method not recognized';
+
+  @override
+  String get errorCache => 'Cache error';
+
+  @override
+  String get passwordUpdatedTitle => 'Password updated';
+
+  @override
+  String get passwordUpdatedText =>
+      'Your password has been successfully updated, you can log in again with the new password.';
+
+  @override
+  String get weakPasswordStrength =>
+      'The new password does not meet the complexity requirements.';
+
+  @override
+  String get errorSavingTryAgain =>
+      'An error occurred while trying to save the new password.';
+
+  @override
+  String get passwordRecentlyUsed =>
+      'The new password does not meet the password history requirement.';
+
+  @override
+  String get newPasswordsNotMatch =>
+      'The new password and its repetition do not match.';
+
+  @override
+  String get userOrPassNotValidCurrent =>
+      'The current password is not correct.';
+
+  @override
+  String get errorNewPass => 'Error changing password';
 }

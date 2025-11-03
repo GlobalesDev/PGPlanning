@@ -73,8 +73,13 @@ class Usuario_pemp {
       };
 
   bool isTwoFAuth_required() {
-    print(twoFAuth_stepConfig.toString());
-    return (twoFAuth_stepConfig != null);
+    print(twoFAuth_stepConfig!.toJson().toString());
+    if (twoFAuth_stepConfig != null) {
+      return (twoFAuth_stepConfig!.twoFAuth_required);
+    } else {
+      return false;
+    }
+    //return (twoFAuth_stepConfig != null);
   }
 
   bool isTwoFAuth_configured() {

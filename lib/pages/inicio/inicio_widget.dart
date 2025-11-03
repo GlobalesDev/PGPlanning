@@ -174,7 +174,7 @@ class _InicioWidgetState extends State<InicioWidget>
           authCancel = true;
         });
 
-        temporizador = Timer(const Duration(seconds: 5), () {
+        temporizador = Timer(const Duration(seconds: 1), () {
           setState(() {
             authCancel = false;
           });
@@ -199,7 +199,7 @@ class _InicioWidgetState extends State<InicioWidget>
       TwoFAuth_validation? twoFAuth_validation) async {
     comprobarCredenciales();
 
-    temporizador = Timer(const Duration(seconds: 2), () async {
+    temporizador = Timer(const Duration(seconds: 1), () async {
       if (dcontext != null) {
         Navigator.pop(dcontext!);
       }
@@ -234,6 +234,7 @@ class _InicioWidgetState extends State<InicioWidget>
           if (usuario_pemp!.isTwoFAuth_required() &&
               (usuario_pemp!.isTwoFAuth_configured() == false)) {
             //es necesario configurar la autenticacion en 2 pasos
+            print('Por el principio');
             _showTwoAuthDialog(
                 context, usuario_pemp!.twoFAuth_stepConfig!, "biometrics");
           } else {
@@ -243,7 +244,11 @@ class _InicioWidgetState extends State<InicioWidget>
                 setState(() {
                   cargando = true;
                 });
-                temporizador = Timer(const Duration(seconds: 2), () {
+                _model.menuLateralModel.estadoMenuLateral =
+                    EstadoMenuLateral.accesoConLog;
+                ServicioCache.prefs.setString("estadoMenu",
+                    _model.menuLateralModel.estadoMenuLateral.name);
+                temporizador = Timer(const Duration(seconds: 1), () {
                   context.pushNamed("MenuPrincipal", queryParameters: {
                     'usuario_pemp': jsonEncode(usuario_pemp!.toJson()),
                     'empLoginConfig': jsonEncode(empLoginConfig!.toJson())
@@ -253,7 +258,11 @@ class _InicioWidgetState extends State<InicioWidget>
                 if (usuario_pemp!.necesitaConfiguracion()) {
                   context.pushNamed("Configuracion");
                 } else {
-                  temporizador = Timer(const Duration(seconds: 2), () {
+                  _model.menuLateralModel.estadoMenuLateral =
+                      EstadoMenuLateral.accesoConLog;
+                  ServicioCache.prefs.setString("estadoMenu",
+                      _model.menuLateralModel.estadoMenuLateral.name);
+                  temporizador = Timer(const Duration(seconds: 1), () {
                     context.pushNamed("MenuPrincipal", queryParameters: {
                       'usuario_pemp': jsonEncode(usuario_pemp!.toJson()),
                       'empLoginConfig': jsonEncode(empLoginConfig!.toJson())
@@ -274,20 +283,30 @@ class _InicioWidgetState extends State<InicioWidget>
         }
       } else if (jsonData["resultado"] == "error") {
         String r_str = jsonData["result_str"];
-        Map<String, String> args = {'titulo': 'Error en el login'};
+        Map<String, String> args = {
+          'titulo':
+              AppLocalizations.of(context)?.errorLogin ?? 'Error en el login'
+        };
         if (r_str == "TOKEN_USER_NOT_MATCH") {
-          args.addAll({'texto': 'El usuario y/o contraseña no son válidos.'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.userOrPassNotValid ??
+                'El usuario y/o contraseña no son válidos.'
+          });
           args.addAll({'tipo': 'TOKEN_USER_NOT_MATCH'});
           _showAlertDialog(context, args);
         } else if (r_str == "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND") {
           args.addAll({
-            'texto':
+            'texto': AppLocalizations.of(context)
+                    ?.userAssociatedWithTokenNotFound ??
                 'El usuario no ha sido encontrado o ha caducado, vuelva a logearse.'
           });
           args.addAll({'tipo': 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND'});
           _showAlertDialog(context, args);
         } else if (r_str == "NEED_UNLOCK_WITH_PASSWORD") {
-          args.addAll({'texto': 'Se necesita un un desbloqueo con contraseña'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.needUnlockWithPassword ??
+                'Se necesita un un desbloqueo con contraseña'
+          });
           args.addAll({'tipo': 'NEED_UNLOCK_WITH_PASSWORD'});
           _showAlertDialog(context, args);
         } else if (r_str == "EXPIRED_PASSWORD") {
@@ -331,7 +350,9 @@ class _InicioWidgetState extends State<InicioWidget>
   /// Funcion
   ///
   void validarYComprobarDatos(String metodo) {
-    Map<String, String> args = {'titulo': 'Error en el login'};
+    Map<String, String> args = {
+      'titulo': AppLocalizations.of(context)?.errorLogin ?? 'Error en el login'
+    };
     if (metodo == "password") {
       _pass = _model.textController2.text;
       if (empLoginConfig != null && empLoginConfig!.getIsLogged()!) {
@@ -345,11 +366,14 @@ class _InicioWidgetState extends State<InicioWidget>
         if (_userEmail!.isEmpty || _checkToken!.isEmpty) {
           // Error no esta en cache
           // Mostrar mensaje de error
-          args.addAll({'texto': 'Error de cache'});
+          args.addAll({
+            'texto':
+                AppLocalizations.of(context)?.errorCache ?? 'Error de cache'
+          });
           _showAlertDialog(context, args);
         } else {
           comprobarCredenciales();
-          temporizador = Timer(const Duration(seconds: 2), () {
+          temporizador = Timer(const Duration(seconds: 1), () {
             comprobarUsuario(null);
           });
         }
@@ -360,19 +384,29 @@ class _InicioWidgetState extends State<InicioWidget>
         //checkToken = null;
         if (_userEmail!.isEmpty && _pass!.isEmpty) {
           // Error no introducido email ni contraseña
-          args.addAll({'texto': 'Introduce un email y una contraseña'});
+          args.addAll({
+            'texto':
+                AppLocalizations.of(context)?.errorEmailAndPasswordRequired ??
+                    'Introduce un email y una contraseña'
+          });
           _showAlertDialog(context, args);
         } else if (_userEmail!.isEmpty) {
           // Error no introducido email
-          args.addAll({'texto': 'Introduce un email'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.errorEmailRequired ??
+                'Introduce un email'
+          });
           _showAlertDialog(context, args);
         } else if (_pass!.isEmpty) {
           // Error no introducida contraseña
-          args.addAll({'texto': 'Introduce una contraseña'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.errorPasswordRequired ??
+                'Introduce una contraseña'
+          });
           _showAlertDialog(context, args);
         } else {
           comprobarCredenciales();
-          temporizador = Timer(const Duration(seconds: 2), () {
+          temporizador = Timer(const Duration(seconds: 1), () {
             comprobarUsuario(null);
           });
         }
@@ -387,7 +421,10 @@ class _InicioWidgetState extends State<InicioWidget>
             print('Sesion caducada');
           }
 
-          args.addAll({'texto': 'Sesion caducada'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.errorSessionExpired ??
+                'Sesion caducada'
+          });
           _showAlertDialog(context, args);
         } else {
           annotateBiometricUnlock(emailUser, checkToken, null);
@@ -406,14 +443,18 @@ class _InicioWidgetState extends State<InicioWidget>
 
         // Avisar con dialog
         args.addAll({
-          'texto': 'La sesión ha caducado, debe realizar un login completo.'
+          'texto': AppLocalizations.of(context)?.errorSessionMustLogin ??
+              'La sesión ha caducado, debe realizar un login completo.'
         });
         _showAlertDialog(context, args);
       }
     } else {
       // Error
       // Avisar con dialog
-      args.addAll({'texto': 'Metodo de login no reconocido'});
+      args.addAll({
+        'texto': AppLocalizations.of(context)?.errorLoginMethodNotRecognized ??
+            'Metodo de login no reconocido'
+      });
       _showAlertDialog(context, args);
     }
   }
@@ -523,7 +564,7 @@ class _InicioWidgetState extends State<InicioWidget>
               setState(() {
                 cargando = true;
               });
-              temporizador = Timer(const Duration(seconds: 2), () async {
+              temporizador = Timer(const Duration(seconds: 1), () async {
                 //podemos saltar a la configuración del puesto
                 if (empLoginConfig != null && empLoginConfig!.isLogged!) {
                   if (empLoginConfig!.estaTotalmenteConfigurado()) {
@@ -610,36 +651,49 @@ class _InicioWidgetState extends State<InicioWidget>
         });
 
         String r_str = jsonData["result_str"];
-        Map<String, String> args = {'titulo': 'Error en el login'};
+        Map<String, String> args = {
+          'titulo':
+              AppLocalizations.of(context)?.errorLogin ?? 'Error en el login'
+        };
 
         //CODIGOS DE ERROR DEL LOGIN COMPLETO DE USUARIO
         if (r_str == "ERROR_REGISTERING_USER") {
           // Mostrar mensaje de error
           args.addAll({
-            'texto':
+            'texto': AppLocalizations.of(context)?.errorRegisteringUser ??
                 'Ocurrió un error al registrar el usuario, vuelva a intentarlo y si el problema persiste contacte con soporte.'
           });
           args.addAll({'tipo': 'ERROR_REGISTERING_USER'});
           _showAlertDialog(context, args);
         } else if (r_str == "USER_OR_PASS_NOT_VALID") {
           // Mostrar mensaje de error
-          args.addAll({'texto': 'El usuario y/o contraseña no son válidos.'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.userOrPassNotValid ??
+                'El usuario y/o contraseña no son válidos.'
+          });
           args.addAll({'tipo': 'USER_OR_PASS_NOT_VALID'});
           _showAlertDialog(context, args);
         } else if (r_str == "TOKEN_USER_NOT_MATCH") {
           // Mostrar mensaje de error
-          args.addAll({'texto': 'El usuario y/o contraseña no son válidos.'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.userOrPassNotValid ??
+                'El usuario y/o contraseña no son válidos.'
+          });
           args.addAll({'tipo': 'TOKEN_USER_NOT_MATCH'});
           _showAlertDialog(context, args);
         } else if (r_str == "UNLOCK_PASS_NOT_MATCH") {
           // Mostrar mensaje de error
-          args.addAll({'texto': 'La contraseña no es válida.'});
+          args.addAll({
+            'texto': AppLocalizations.of(context)?.unlockPassNotMatch ??
+                'La contraseña no es válida.'
+          });
           args.addAll({'tipo': 'UNLOCK_PASS_NOT_MATCH'});
           _showAlertDialog(context, args);
         } else if (r_str == "USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND") {
           // Mostrar mensaje de error
           args.addAll({
-            'texto':
+            'texto': AppLocalizations.of(context)
+                    ?.userAssociatedWithTokenNotFound ??
                 'El usuario no ha sido encontrado o ha caducado, vuelva a logearse.'
           });
           args.addAll({'tipo': 'USER_ASSOCIATED_WITH_TOKEN_NOT_FOUND'});
@@ -744,20 +798,26 @@ class _InicioWidgetState extends State<InicioWidget>
       _model.textController1.text = '';
       _model.textController2.text = '';
 
-      Map<String, String> args = {'titulo': 'Contraseña actualizada'};
+      Map<String, String> args = {
+        'titulo': AppLocalizations.of(context)?.passwordUpdatedTitle ??
+            'Contraseña actualizada'
+      };
       args.addAll({
-        'texto':
+        'texto': AppLocalizations.of(context)?.passwordUpdatedText ??
             'Su contraseña ha sido actualizada satisfactoriamente, puede volver a logearse con la nueva contraseña.'
       });
       _showAlertDialog(context, args);
     } else if (jsonData["resultado"] == "error") {
       print(jsonData);
       String r_str = jsonData["result_str"];
-      Map<String, String> args = {'titulo': 'Error en el cambio de contraseña'};
+      Map<String, String> args = {
+        'titulo': AppLocalizations.of(context)?.errorNewPass ??
+            'Error en el cambio de contraseña'
+      };
       if (r_str == "WEAK_PASSWORD_STRENGTH") {
         //La nueva contraseña no cumple los requisitos de complejidad.
         args.addAll({
-          'texto':
+          'texto': AppLocalizations.of(context)?.weakPasswordStrength ??
               'La nueva contraseña no cumple los requisitos de complejidad.'
         });
         args.addAll({'tipo': 'WEAK_PASSWORD_STRENGTH'});
@@ -765,7 +825,7 @@ class _InicioWidgetState extends State<InicioWidget>
       } else if (r_str == "ERROR_SAVING_TRY_AGAIN") {
         args.addAll({
           // Ha ocurrido un error al intentar guardar la nueva contraseña.
-          'texto':
+          'texto': AppLocalizations.of(context)?.errorSavingTryAgain ??
               'Ha ocurrido un error al intentar guardar la nueva contraseña.'
         });
         args.addAll({'tipo': 'ERROR_SAVING_TRY_AGAIN'});
@@ -773,20 +833,25 @@ class _InicioWidgetState extends State<InicioWidget>
       } else if (r_str == "PASSWORD_RECENTLY_USED") {
         //La nueva contraseña no cumple el requisito de historico de contraseñas
         args.addAll({
-          'texto':
+          'texto': AppLocalizations.of(context)?.passwordRecentlyUsed ??
               'La nueva contraseña no cumple el requisito de historico de contraseñas.'
         });
         args.addAll({'tipo': 'PASSWORD_RECENTLY_USED'});
         _showAlertDialog(context, args);
       } else if (r_str == "NEW_PASSWORDS_NOT_MATCH") {
         // La nueva contraseña y su repeticion no coinciden
-        args.addAll(
-            {'texto': 'La nueva contraseña y su repeticion no coinciden.'});
+        args.addAll({
+          'texto': AppLocalizations.of(context)?.newPasswordsNotMatch ??
+              'La nueva contraseña y su repeticion no coinciden.'
+        });
         args.addAll({'tipo': 'NEW_PASSWORDS_NOT_MATCH'});
         _showAlertDialog(context, args);
       } else if (r_str == "USER_OR_PASS_NOT_VALID") {
         // La actual contraseña no es correcta
-        args.addAll({'texto': 'La actual contraseña no es correcta.'});
+        args.addAll({
+          'texto': AppLocalizations.of(context)?.userOrPassNotValidCurrent ??
+              'La actual contraseña no es correcta.'
+        });
         args.addAll({'tipo': 'USER_OR_PASS_NOT_VALID'});
         _showAlertDialog(context, args);
       } else {
@@ -804,20 +869,31 @@ class _InicioWidgetState extends State<InicioWidget>
         return Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: const Color(0xFF0A2C4E),
+          backgroundColor: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color.fromARGB(255, 27, 66, 88),
+                  Color.fromARGB(255, 24, 83, 104),
+                  Color.fromARGB(255, 2, 119, 158)
+                ],
+                stops: [0.0, 0.3, 0.8],
+                begin: AlignmentDirectional(-1.0, -0.94),
+                end: AlignmentDirectional(1.0, 0.94),
+              ),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16.0),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
                   child: Text(
-                    'Su contraseña ha cambiado.',
-                    style: TextStyle(
+                    AppLocalizations.of(context)?.passwordExpired ??
+                        'Su contraseña ha caducado.',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -825,11 +901,12 @@ class _InicioWidgetState extends State<InicioWidget>
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 24.0),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
                   child: Text(
-                    'Para acceder al sistema debe cambiarla y volver a logearse.',
-                    style: TextStyle(
+                    AppLocalizations.of(context)?.passwordChangedInfo ??
+                        'Su contraseña ha cambiado. Para acceder al sistema debe cambiarla y volver a logearse.',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
@@ -837,41 +914,117 @@ class _InicioWidgetState extends State<InicioWidget>
                   ),
                 ),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0A2C4E),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 56, // Altura fija para ambos botones
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0A2C4E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets
+                                .zero, // Elimina el padding para usar el alto del SizedBox
+                          ),
+                          onPressed: () {
+                            if (dcontext!.mounted) {
+                              Navigator.pop(dcontext!);
+                            }
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            AppLocalizations.of(context)?.close ?? 'Cerrar',
+                            style: const TextStyle(fontSize: 15),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                      onPressed: () {
-                        if (dcontext!.mounted) {
-                          Navigator.pop(dcontext!);
-                        }
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Cerrar'),
                     ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0A2C4E),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 56, // Altura fija para ambos botones
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0A2C4E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _showRenewPassDialog(context, email, oldPassEnc,
+                                oldPassEnc2, esBiometrico);
+                          },
+                          child: Text(
+                            AppLocalizations.of(context)?.changePassword ??
+                                'Cambiar contraseña',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 15),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _showRenewPassDialog(context, email, oldPassEnc,
-                            oldPassEnc2, esBiometrico);
-                      },
-                      child: const Text('Cambiar contraseña'),
                     ),
                   ],
-                ),
+                )
+                /*Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0A2C4E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            if (dcontext!.mounted) {
+                              Navigator.pop(dcontext!);
+                            }
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                              AppLocalizations.of(context)?.close ?? 'Cerrar',
+                              style: const TextStyle(fontSize: 15)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0A2C4E),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _showRenewPassDialog(context, email, oldPassEnc,
+                                oldPassEnc2, esBiometrico);
+                          },
+                          child: Text(
+                              AppLocalizations.of(context)?.changePassword ??
+                                  'Cambiar contraseña',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 15)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),*/
               ],
             ),
           ),
@@ -889,18 +1042,19 @@ class _InicioWidgetState extends State<InicioWidget>
         return Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor:
-              const Color(0xFF0A2C4E), // azul oscuro similar al header
+          backgroundColor: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [
-                  Color(0xFF0A2C4E),
-                  Color(0xFF1B73C0)
-                ], // degradado azul
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                  Color.fromARGB(255, 27, 66, 88),
+                  Color.fromARGB(255, 24, 83, 104),
+                  Color.fromARGB(255, 2, 119, 158)
+                ],
+                stops: [0.0, 0.3, 0.8],
+                begin: AlignmentDirectional(-1.0, -0.94),
+                end: AlignmentDirectional(1.0, 0.94),
               ),
               borderRadius: BorderRadius.circular(24),
             ),
@@ -945,9 +1099,9 @@ class _InicioWidgetState extends State<InicioWidget>
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: const Text(
-                      'Aceptar',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    child: Text(
+                      AppLocalizations.of(context)?.aceptar ?? 'Aceptar',
+                      style: const TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                 ),
@@ -1624,6 +1778,10 @@ class _InicioWidgetState extends State<InicioWidget>
           var data = TwoFAuth_validation.fromBD(jsonDecode(message.message));
 
           Navigator.pop(context);
+          _model.menuLateralModel.estadoMenuLateral =
+              EstadoMenuLateral.accesoConLog;
+          ServicioCache.prefs.setString(
+              "estadoMenu", _model.menuLateralModel.estadoMenuLateral.name);
           if (metodo == "password") {
             comprobarUsuario(data);
           } else if (metodo == "biometrics") {
@@ -1711,13 +1869,16 @@ class _InicioWidgetState extends State<InicioWidget>
             json[param.name] = param.value;
           }
 
-          json['deviceTZ'] = DateTime.now().timeZoneName;
+          json['deviceTZ'] = //"Europe/Madrid"; 
+            DateTime.now().timeZoneName;
 
           if (isiOS) {
             json['typeAPP'] = 'IOS';
           } else if (isAndroid) {
             json['typeAPP'] = 'ANDROID';
           }
+
+          print(json);
 
           controller.runJavaScript(
               '''flutterNativeWebView_resolveResponseFor(JSON.stringify({"questionAnswered": "2FAuth_retrieveValidationConfig", "response": ${jsonEncode(json)}}))''');
@@ -1813,10 +1974,12 @@ class _InicioWidgetState extends State<InicioWidget>
                 passNewController.text == passNewRController.text;
             errorPass = passNewController.text.isEmpty || passValid
                 ? ''
-                : 'La contraseña no cumple los requisitos.';
+                : AppLocalizations.of(context)?.passwordRequirementsNotMet ??
+                    'La contraseña no cumple los requisitos.';
             errorRepeat = passNewRController.text.isEmpty || passRepeatValid
                 ? ''
-                : 'Las contraseñas no coinciden.';
+                : AppLocalizations.of(context)?.passwordsDoNotMatch ??
+                    'Las contraseñas no coinciden.';
             return Dialog(
               child: SingleChildScrollView(
                 child: Container(
@@ -1842,19 +2005,23 @@ class _InicioWidgetState extends State<InicioWidget>
                           height: 48,
                         ),
                       ),
-                      const Text(
-                        'Cambio de contraseña',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)?.changePassword ??
+                            'Cambio de contraseña',
+                        style: const TextStyle(
                           color: Color.fromRGBO(255, 255, 255, 1),
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(10, 10, 10, 10),
+                      Padding(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                            10, 10, 10, 10),
                         child: Text(
-                          'Para cambiar su contraseña, debe introducir la nueva contraseña y repetirla. Recuerde que la nueva contraseña debe ser de al menos 8 caracteres y contener mayúsculas, minúsculas, dígitos del 0 al 9 y un caracter especial.',
-                          style: TextStyle(
+                          AppLocalizations.of(context)
+                                  ?.passwordRequirementsDetail ??
+                              'Para cambiar su contraseña, debe introducir la nueva contraseña y repetirla. Recuerde que la nueva contraseña debe ser de al menos 8 caracteres y contener mayúsculas, minúsculas, dígitos del 0 al 9 y un caracter especial.',
+                          style: const TextStyle(
                             fontSize: 11,
                             color: Color.fromRGBO(255, 255, 255, 1),
                           ),
@@ -1865,45 +2032,70 @@ class _InicioWidgetState extends State<InicioWidget>
                         padding:
                             const EdgeInsetsDirectional.fromSTEB(10, 0, 10, 10),
                         child: Text(
-                          'Usuario: $email',
+                          '${AppLocalizations.of(context)?.user}: $email',
                           style: const TextStyle(
                             color: Color.fromRGBO(255, 255, 255, 1),
-                            fontSize: 13,
+                            fontSize: 14,
                           ),
                         ),
                       ),
                       Padding(
                         padding:
                             const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: passNewController,
-                                obscureText: true,
-                                onChanged: (_) => setState(() {}),
-                                decoration: const InputDecoration(
-                                  hintText: 'Contraseña nueva',
-                                  hintStyle: TextStyle(
-                                      color: Color.fromARGB(255, 255, 255, 255),
-                                      fontSize: 13),
-                                ),
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 13),
-                              ),
+                        child: TextField(
+                          controller: passNewController,
+                          obscureText: true,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white12,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 12),
+                            hintText:
+                                AppLocalizations.of(context)?.newPassword ??
+                                    'Nueva contraseña',
+                            hintStyle: const TextStyle(
+                                color: Color.fromARGB(200, 255, 255, 255),
+                                fontSize: 14),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white24),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: passNewController.text.isEmpty
-                                  ? const SizedBox(width: 24)
-                                  : (passValid
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.green, size: 24)
-                                      : const Icon(Icons.error,
-                                          color: Colors.red, size: 24)),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white70),
                             ),
-                          ],
+                            suffixIcon: passNewController.text.isEmpty
+                                ? null
+                                : Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(0, 3, 8, 3),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: passValid
+                                            ? Colors.green.withAlpha(80)
+                                            : Colors.red.withAlpha(70),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: passValid
+                                              ? Color.fromARGB(255, 9, 128, 23)
+                                              : Colors.red,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        passValid ? Icons.check : Icons.error,
+                                        color: passValid
+                                            ? Color.fromARGB(255, 9, 128, 23)
+                                            : Colors.red,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
                         ),
                       ),
                       if (errorPass.isNotEmpty)
@@ -1916,35 +2108,62 @@ class _InicioWidgetState extends State<InicioWidget>
                       Padding(
                         padding:
                             const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: passNewRController,
-                                obscureText: true,
-                                onChanged: (_) => setState(() {}),
-                                decoration: const InputDecoration(
-                                  hintText: 'Repetir contraseña',
-                                  hintStyle: TextStyle(
-                                      color: Color.fromARGB(255, 255, 255, 255),
-                                      fontSize: 13),
-                                ),
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 13),
-                              ),
+                        child: TextField(
+                          controller: passNewRController,
+                          obscureText: true,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white12,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 12),
+                            hintText:
+                                AppLocalizations.of(context)?.repeatPassword ??
+                                    'Repetir contraseña',
+                            hintStyle: const TextStyle(
+                                color: Color.fromARGB(200, 255, 255, 255),
+                                fontSize: 13),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white24),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: passNewRController.text.isEmpty
-                                  ? const SizedBox(width: 24)
-                                  : (passRepeatValid
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.green, size: 24)
-                                      : const Icon(Icons.error,
-                                          color: Colors.red, size: 24)),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Colors.white70),
                             ),
-                          ],
+                            suffixIcon: passNewRController.text.isEmpty
+                                ? null
+                                : Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(0, 3, 8, 3),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: passRepeatValid
+                                            ? Colors.green.withAlpha(80)
+                                            : Colors.red.withAlpha(70),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: passRepeatValid
+                                              ? Color.fromARGB(255, 9, 128, 23)
+                                              : Colors.red.withOpacity(0.9),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        passRepeatValid
+                                            ? Icons.check
+                                            : Icons.error,
+                                        color: passRepeatValid
+                                            ? Color.fromARGB(255, 9, 128, 23)
+                                            : Colors.red,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
                         ),
                       ),
                       if (errorRepeat.isNotEmpty)
@@ -1956,7 +2175,7 @@ class _InicioWidgetState extends State<InicioWidget>
                         ),
                       Padding(
                         padding:
-                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
+                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 18),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -1976,8 +2195,10 @@ class _InicioWidgetState extends State<InicioWidget>
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                 },
-                                child: const Text('Cancelar',
-                                    style: TextStyle(fontSize: 13)),
+                                child: Text(
+                                    AppLocalizations.of(context)?.cancelar ??
+                                        "Cancelar",
+                                    style: const TextStyle(fontSize: 13)),
                               ),
                             ),
                             SizedBox(
@@ -2005,8 +2226,10 @@ class _InicioWidgetState extends State<InicioWidget>
                                             esBiometrico);
                                       }
                                     : null,
-                                child: const Text('Cambiar',
-                                    style: TextStyle(fontSize: 13)),
+                                child: Text(
+                                    AppLocalizations.of(context)?.change ??
+                                        "Cambiar",
+                                    style: const TextStyle(fontSize: 13)),
                               ),
                             ),
                           ],
@@ -2022,165 +2245,4 @@ class _InicioWidgetState extends State<InicioWidget>
       },
     );
   }
-  /*Future<void> _showRenewPassDialog(BuildContext context, String email) async {
-    TextEditingController passOldController = TextEditingController();
-    TextEditingController passNewController = TextEditingController();
-    TextEditingController passNewRController = TextEditingController();
-    return showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            child: SingleChildScrollView(
-              child: Container(
-                decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 27, 66, 88),
-                    Color.fromARGB(255, 24, 83, 104),
-                    Color.fromARGB(255, 2, 119, 158)
-                  ],
-                  stops: [0.0, 0.3, 0.8],
-                  begin: AlignmentDirectional(-1.0, -0.94),
-                  end: AlignmentDirectional(1.0, 0.94),
-                )),
-                child: Column(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(10, 10, 10, 10),
-                      child: Image(
-                          image: AssetImage('assets/images/ic_renew_pass.png')),
-                    ),
-                    const Text(
-                      'Cambio de contraseña',
-                      style: TextStyle(
-                        color: Color.fromRGBO(255, 255, 255, 1),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(10, 10, 10, 10),
-                      child: Text(
-                        'Para cambiar su contraseña, debe introducir la contraseña actual y la nueva. Recuerde que la nueva contraseña debe ser de al menos 8 caracteres y contener mayúsculas, minúsculas y dígitos del 0 al 9.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color.fromRGBO(255, 255, 255, 1),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          const EdgeInsetsDirectional.fromSTEB(10, 0, 10, 10),
-                      child: Text(
-                        'Usuario: $email', // ${empLoginConfig!.getEmployeeName()}',
-                        style: const TextStyle(
-                          color: Color.fromRGBO(255, 255, 255, 1),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                      child: TextField(
-                        controller: passOldController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                            hintText: 'Contraseña antigua',
-                            hintStyle: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255))),
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                      child: TextField(
-                          controller: passNewController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                              hintText: 'Contraseña nueva',
-                              hintStyle: TextStyle(
-                                  color: Color.fromARGB(255, 255, 255, 255)))),
-                    ),
-                    Padding(
-                      padding:
-                          const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                      child: TextField(
-                        controller: passNewRController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                            hintText: 'Repetir contraseña',
-                            hintStyle: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255))),
-                      ),
-                    ),
-                    Padding(
-                        padding:
-                            const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            FFButtonWidget(
-                              onPressed: () async {
-                                if (dcontext!.mounted) {
-                                  Navigator.pop(dcontext!);
-                                }
-                                Navigator.pop(context);
-                              },
-                              text: 'Cancelar',
-                              options: FFButtonOptions(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                iconPadding:
-                                    const EdgeInsetsDirectional.fromSTEB(
-                                        0.0, 0.0, 0.0, 0.0),
-                                color: FlutterFlowTheme.of(context).primary,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      fontFamily: 'Readex Pro',
-                                      color: Colors.white,
-                                    ),
-                                elevation: 3.0,
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                            ),
-                            FFButtonWidget(
-                              onPressed: () async {
-                                if (passOldController.text != '' &&
-                                    passNewController.text != '' &&
-                                    passNewRController.text != '') {
-                                  // Codificamos las claves
-                                  _changeAdminPassword(
-                                      email, //empLoginConfig!.getUserEmail()!,
-                                      passOldController.text,
-                                      passNewController.text,
-                                      passNewRController.text);
-                                  Navigator.pop(context);
-                                }
-                              },
-                              text: 'Cambiar clave',
-                              options: FFButtonOptions(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                iconPadding:
-                                    const EdgeInsetsDirectional.fromSTEB(
-                                        0.0, 0.0, 0.0, 0.0),
-                                color: FlutterFlowTheme.of(context).primary,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      fontFamily: 'Readex Pro',
-                                      color: Colors.white,
-                                    ),
-                                elevation: 3.0,
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                            )
-                          ],
-                        )),
-                  ],
-                ),
-              ),
-            ),
-          );
-        });
-  }*/
 }
